@@ -403,18 +403,30 @@ function renderAgentPicker() {
 
 async function loadAllKPI() {
   const dash = document.getElementById('dash-main');
-  dash.innerHTML = `<div class="state-box"><div class="state-title loading-dots">Loading KPI data</div><div class="state-sub">Jan 2026 – present</div></div>`;
+  dash.innerHTML = `<div class="state-box"><div class="state-title loading-dots">Loading KPI data</div><div class="state-sub">Fetching from Follow Up Boss — Jan 2026 to present</div></div>`;
   try {
     const data = await fetch('/api/kpi/all').then(r=>r.json());
     if (!data.ok) throw new Error(data.error);
-    // Store per agent
     data.agents.forEach(a => { kpiData[a.userId] = a; });
-    // Also fetch weekly/monthly for the full team
-    const weekly = await fetch('/api/kpi?start=2026-01-01').then(r=>r.json());
-    kpiData['_team'] = weekly;
+
+    const teamData = await fetch('/api/kpi').then(r=>r.json());
+    kpiData['_team'] = teamData;
+
+    if (teamData.ok && teamData.debug) {
+      const d = teamData.debug;
+      console.log('[FUB] calls:', d.totalCalls, '| appts:', d.totalAppts, '| deals:', d.totalDeals);
+      console.log('[FUB] call sample fields:', d.callSample ? Object.keys(d.callSample) : 'none');
+      console.log('[FUB] call sample:', JSON.stringify(d.callSample, null, 2));
+    }
+
     renderDashboard();
   } catch(e) {
-    dash.innerHTML = `<div class="state-box"><div class="state-icon">⚠</div><div class="state-title">Error loading KPI</div><div class="state-sub">${e.message}</div></div>`;
+    dash.innerHTML = `<div class="state-box">
+      <div class="state-icon">⚠</div>
+      <div class="state-title">Error loading KPI</div>
+      <div class="state-sub" style="color:var(--red)">${e.message}</div>
+      <div class="state-sub" style="margin-top:12px">Open <code>/api/debug/calls?limit=1</code> to inspect raw FUB fields.</div>
+    </div>`;
   }
 }
 

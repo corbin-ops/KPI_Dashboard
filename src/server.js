@@ -21,11 +21,13 @@ function getFubAuth() {
 
 async function fubFetch(path) {
   const { default: fetch } = await import('node-fetch');
-  const res = await fetch(FUB_BASE + path, {
+  const url = FUB_BASE + path;
+  console.log('[FUB]', url);
+  const res = await fetch(url, {
     headers: { Authorization: getFubAuth(), Accept: 'application/json' },
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.errorMessage || data.message || res.statusText);
+  if (!res.ok) throw new Error(data.errorMessage || data.message || `HTTP ${res.status}`);
   return data;
 }
 
@@ -43,7 +45,29 @@ app.get('/api/users', async (req, res) => {
   } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });
 
-// Probe endpoint
+// Debug — inspect raw FUB response for any endpoint + params
+app.get('/api/debug/:endpoint', async (req, res) => {
+  try {
+    const qs = new URLSearchParams(req.query).toString();
+    const path = `/${req.params.endpoint}${qs ? '?' + qs : ''}`;
+    const data = await fubFetch(path);
+    const keys = Object.keys(data);
+    const listKey = keys.find(k => Array.isArray(data[k]));
+    const list = listKey ? data[listKey] : [];
+    res.json({
+      ok: true,
+      path,
+      topLevelKeys: keys,
+      listKey,
+      count: list.length,
+      // Show all field names + sample values from first record
+      firstRecord: list[0] || null,
+      firstRecordKeys: list[0] ? Object.keys(list[0]) : [],
+    });
+  } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+
+// Probe endpoint (for metric explorer)
 app.get('/api/probe/:endpoint', async (req, res) => {
   const ep = req.params.endpoint;
   const ALLOWED = ['people','calls','appointments','deals','tasks','texts','notes','events','smartLists','stages','pipelines','customFields'];
@@ -57,168 +81,253 @@ app.get('/api/probe/:endpoint', async (req, res) => {
   } catch (e) { res.status(200).json({ ok: false, error: e.message }); }
 });
 
-// KPI data for dashboard — Jan 2026 to present, per user, by week
+// ─── Core data fetcher with smart field detection ─────────────────────────────
+//
+// FUB API filter params vary by endpoint. We try the most common patterns:
+//   calls:        ?createdAfter=  ?createdBefore=   &userId=
+//   appointments: ?createdAfter=  ?start=           &userId=  (some versions: &assignedUserId=)
+//   deals:        ?createdAfter=  &userId=          (some versions: no date filter at all)
+//
+// We fetch without date filter and filter in JS — most reliable approach.
+// FUB free/basic plans cap at 100 records; we paginate via offset.
+
+async function fetchAll(endpoint, extraParams = '') {
+  let all = [];
+  let offset = 0;
+  const limit = 100;
+  const listKeys = {
+    calls: 'calls', appointments: 'appointments', deals: 'deals',
+    texts: 'textMessages', notes: 'notes', events: 'events',
+  };
+
+  while (true) {
+    const data = await fubFetch(`/${endpoint}?limit=${limit}&offset=${offset}${extraParams}`);
+    // Find the array in the response
+    const listKey = listKeys[endpoint] || Object.keys(data).find(k => Array.isArray(data[k]));
+    const batch = listKey ? (data[listKey] || []) : [];
+    all = all.concat(batch);
+    if (batch.length < limit) break; // last page
+    offset += limit;
+    if (offset > 2000) break; // safety cap
+  }
+  return all;
+}
+
+// Filter records to Jan 2026 – present in JS (avoids API date param inconsistencies)
+function inRange(dateStr, start = '2026-01-01') {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  return d >= new Date(start) && d <= new Date();
+}
+
+function getWeekKey(dateStr) {
+  const d = new Date(dateStr);
+  // ISO week: Monday-based
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() + 4 - day);
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil(((d - jan1) / 86400000 + 1) / 7);
+  return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+
+function getMonthKey(dateStr) {
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function ensurePeriod(map, key) {
+  if (!map[key]) map[key] = {
+    dials:0, connectedCalls:0, talkTimeSec:0,
+    appts:0, apptsAttended:0,
+    offers:0, verbals:0, contracts:0,
+    textsSent:0, textsReceived:0,
+  };
+  return map[key];
+}
+
+function enrichPeriods(map) {
+  return Object.entries(map)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([period, m]) => ({
+      period,
+      dials: m.dials,
+      connectedCalls: m.connectedCalls,
+      talkTimeMin: Math.round(m.talkTimeSec / 60),
+      appts: m.appts,
+      apptsAttended: m.apptsAttended,
+      showRate: m.appts ? Math.round((m.apptsAttended / m.appts) * 100) : 0,
+      dialToConnect: m.dials ? Math.round((m.connectedCalls / m.dials) * 100) : 0,
+      connectToAppt: m.connectedCalls ? Math.round((m.appts / m.connectedCalls) * 100) : 0,
+      offers: m.offers,
+      verbals: m.verbals,
+      contracts: m.contracts,
+      textsSent: m.textsSent,
+      textsReceived: m.textsReceived,
+      responseRate: m.textsSent ? Math.round((m.textsReceived / m.textsSent) * 100) : 0,
+    }));
+}
+
+function aggregateCalls(calls, weeklyMap, monthlyMap) {
+  calls.forEach(c => {
+    // FUB call date fields: createdAt, updatedAt, completedAt
+    const dateStr = c.createdAt || c.completedAt || c.updatedAt;
+    if (!inRange(dateStr)) return;
+    const w = getWeekKey(dateStr), mo = getMonthKey(dateStr);
+
+    // Direction: FUB uses 'outbound'/'inbound' on type OR direction field
+    const isOutbound = (c.type||'').toLowerCase().includes('outbound') ||
+                       (c.direction||'').toLowerCase() === 'outbound';
+    if (isOutbound) {
+      ensurePeriod(weeklyMap, w).dials++;
+      ensurePeriod(monthlyMap, mo).dials++;
+    }
+    // Connected = duration > 0 OR disposition = 'connected'
+    const isConnected = (c.duration > 0) || (c.disposition||'').toLowerCase() === 'connected';
+    if (isConnected) {
+      ensurePeriod(weeklyMap, w).connectedCalls++;
+      ensurePeriod(monthlyMap, mo).connectedCalls++;
+    }
+    ensurePeriod(weeklyMap, w).talkTimeSec += (c.duration || 0);
+    ensurePeriod(monthlyMap, mo).talkTimeSec += (c.duration || 0);
+  });
+}
+
+function aggregateAppts(appts, weeklyMap, monthlyMap) {
+  appts.forEach(a => {
+    const dateStr = a.start || a.createdAt || a.updatedAt;
+    if (!inRange(dateStr)) return;
+    const w = getWeekKey(dateStr), mo = getMonthKey(dateStr);
+    ensurePeriod(weeklyMap, w).appts++;
+    ensurePeriod(monthlyMap, mo).appts++;
+    // FUB appointment outcome: 'Attended', 'attended', or attended boolean
+    const isAttended = (a.outcome||'').toLowerCase() === 'attended' ||
+                       a.attended === true || a.attended === 1;
+    if (isAttended) {
+      ensurePeriod(weeklyMap, w).apptsAttended++;
+      ensurePeriod(monthlyMap, mo).apptsAttended++;
+    }
+  });
+}
+
+function aggregateDeals(deals, weeklyMap, monthlyMap) {
+  deals.forEach(d => {
+    const dateStr = d.createdAt || d.updatedAt;
+    if (!inRange(dateStr)) return;
+    const w = getWeekKey(dateStr), mo = getMonthKey(dateStr);
+    // FUB stages — match flexibly
+    const stage = (d.stage || d.stageId || d.pipelineStage || '').toString().toLowerCase();
+    if (stage.includes('offer'))    { ensurePeriod(weeklyMap,w).offers++;    ensurePeriod(monthlyMap,mo).offers++; }
+    if (stage.includes('verbal'))   { ensurePeriod(weeklyMap,w).verbals++;   ensurePeriod(monthlyMap,mo).verbals++; }
+    if (stage.includes('contract') || stage.includes('sign') || stage.includes('pending')) {
+      ensurePeriod(weeklyMap,w).contracts++;
+      ensurePeriod(monthlyMap,mo).contracts++;
+    }
+  });
+}
+
+function sumAcrossPeriods(weekly, monthly) {
+  const sum = (arr, field) => arr.reduce((s, p) => s + (p[field]||0), 0);
+  const w = weekly, m = monthly;
+  const dials = sum(w,'dials'), conn = sum(w,'connectedCalls');
+  const appts = sum(w,'appts'), att = sum(w,'apptsAttended');
+  const talk = sum(w,'talkTimeMin');
+  return {
+    dials, connectedCalls: conn, talkTimeMin: talk,
+    appts, apptsAttended: att,
+    showRate: appts ? Math.round((att/appts)*100) : 0,
+    dialToConnect: dials ? Math.round((conn/dials)*100) : 0,
+    offers: sum(w,'offers'), verbals: sum(w,'verbals'), contracts: sum(w,'contracts'),
+  };
+}
+
+// KPI for one user or team
 app.get('/api/kpi', async (req, res) => {
-  const { userId, start, end } = req.query;
-  const startDate = start || '2026-01-01';
-  const endDate = end || new Date().toISOString().split('T')[0];
-
+  const { userId } = req.query;
   try {
-    const userFilter = userId ? `&userId=${userId}` : '';
-    const dateFilter = `&created[gte]=${startDate}&created[lte]=${endDate}`;
-
-    const [callsData, apptData, dealsData, textsData] = await Promise.all([
-      fubFetch(`/calls?limit=500${userFilter}${dateFilter}`),
-      fubFetch(`/appointments?limit=500${userFilter.replace('userId','assignedTo')}&start[gte]=${startDate}&start[lte]=${endDate}`),
-      fubFetch(`/deals?limit=500${userFilter.replace('userId','assignedTo')}${dateFilter}`),
-      fubFetch(`/texts?limit=500${userFilter}${dateFilter}`).catch(() => ({ texts: [] })),
+    const userParam = userId ? `&userId=${userId}` : '';
+    const [calls, appts, deals] = await Promise.all([
+      fetchAll('calls', userParam),
+      fetchAll('appointments', userParam),
+      fetchAll('deals', userParam),
     ]);
 
-    const calls = callsData.calls || callsData._embedded?.calls || [];
-    const appts = apptData.appointments || apptData._embedded?.appointments || [];
-    const deals = dealsData.deals || dealsData._embedded?.deals || [];
-    const texts = textsData.texts || textsData._embedded?.texts || [];
+    const weeklyMap = {}, monthlyMap = {};
+    aggregateCalls(calls, weeklyMap, monthlyMap);
+    aggregateAppts(appts, weeklyMap, monthlyMap);
+    aggregateDeals(deals, weeklyMap, monthlyMap);
 
-    // Aggregate by week
-    function getWeek(dateStr) {
-      const d = new Date(dateStr);
-      const jan1 = new Date(d.getFullYear(), 0, 1);
-      const week = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
-      return `${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
-    }
-
-    function getMonth(dateStr) {
-      const d = new Date(dateStr);
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    }
-
-    const weeklyMap = {};
-    const monthlyMap = {};
-
-    function ensure(map, key) {
-      if (!map[key]) map[key] = { dials:0, connectedCalls:0, talkTimeSec:0, appts:0, apptsAttended:0, offers:0, verbals:0, contracts:0, textsSent:0, textsReceived:0 };
-      return map[key];
-    }
-
-    calls.forEach(c => {
-      const d = c.createdAt || c.updatedAt;
-      if (!d) return;
-      const w = getWeek(d), m = getMonth(d);
-      const isOutbound = c.type === 'outbound' || c.direction === 'outbound' || !c.direction;
-      if (isOutbound) { ensure(weeklyMap,w).dials++; ensure(monthlyMap,m).dials++; }
-      if (c.duration > 0) { ensure(weeklyMap,w).connectedCalls++; ensure(monthlyMap,m).connectedCalls++; }
-      ensure(weeklyMap,w).talkTimeSec += (c.duration||0);
-      ensure(monthlyMap,m).talkTimeSec += (c.duration||0);
-    });
-
-    appts.forEach(a => {
-      const d = a.start || a.createdAt;
-      if (!d) return;
-      const w = getWeek(d), m = getMonth(d);
-      ensure(weeklyMap,w).appts++;
-      ensure(monthlyMap,m).appts++;
-      if (a.outcome === 'attended' || a.attended) {
-        ensure(weeklyMap,w).apptsAttended++;
-        ensure(monthlyMap,m).apptsAttended++;
-      }
-    });
-
-    deals.forEach(deal => {
-      const d = deal.createdAt || deal.updatedAt;
-      if (!d) return;
-      const w = getWeek(d), m = getMonth(d);
-      const stage = (deal.stage||'').toLowerCase();
-      if (stage.includes('offer')) { ensure(weeklyMap,w).offers++; ensure(monthlyMap,m).offers++; }
-      if (stage.includes('verbal')) { ensure(weeklyMap,w).verbals++; ensure(monthlyMap,m).verbals++; }
-      if (stage.includes('contract') || stage.includes('sign')) { ensure(weeklyMap,w).contracts++; ensure(monthlyMap,m).contracts++; }
-    });
-
-    texts.forEach(t => {
-      const d = t.createdAt;
-      if (!d) return;
-      const w = getWeek(d), m = getMonth(d);
-      if (t.direction === 'outbound') { ensure(weeklyMap,w).textsSent++; ensure(monthlyMap,m).textsSent++; }
-      else { ensure(weeklyMap,w).textsReceived++; ensure(monthlyMap,m).textsReceived++; }
-    });
-
-    // Computed metrics
-    function enrich(map) {
-      return Object.entries(map).sort(([a],[b])=>a.localeCompare(b)).map(([period, m]) => ({
-        period,
-        dials: m.dials,
-        connectedCalls: m.connectedCalls,
-        talkTimeMin: Math.round(m.talkTimeSec/60),
-        appts: m.appts,
-        apptsAttended: m.apptsAttended,
-        showRate: m.appts ? Math.round((m.apptsAttended/m.appts)*100) : 0,
-        dialToConnect: m.dials ? Math.round((m.connectedCalls/m.dials)*100) : 0,
-        connectToAppt: m.connectedCalls ? Math.round((m.appts/m.connectedCalls)*100) : 0,
-        offers: m.offers,
-        verbals: m.verbals,
-        contracts: m.contracts,
-        textsSent: m.textsSent,
-        textsReceived: m.textsReceived,
-        responseRate: m.textsSent ? Math.round((m.textsReceived/m.textsSent)*100) : 0,
-      }));
-    }
+    const weekly  = enrichPeriods(weeklyMap);
+    const monthly = enrichPeriods(monthlyMap);
 
     res.json({
-      ok: true,
-      weekly: enrich(weeklyMap),
-      monthly: enrich(monthlyMap),
-      totals: {
-        calls: calls.length,
-        appts: appts.length,
-        deals: deals.length,
-        texts: texts.length,
-      }
+      ok: true, weekly, monthly,
+      debug: { totalCalls: calls.length, totalAppts: appts.length, totalDeals: deals.length,
+               callSample: calls[0] || null, apptSample: appts[0] || null },
     });
+  } catch (e) {
+    console.error('/api/kpi error:', e.message);
+    res.status(400).json({ ok: false, error: e.message });
+  }
+});
+
+// All agents KPI summary
+app.get('/api/kpi/all', async (req, res) => {
+  try {
+    const usersData = await fubFetch('/users');
+    const users = usersData.users || [];
+
+    const results = await Promise.all(users.map(async u => {
+      try {
+        const [calls, appts, deals] = await Promise.all([
+          fetchAll('calls', `&userId=${u.id}`),
+          fetchAll('appointments', `&userId=${u.id}`),
+          fetchAll('deals', `&userId=${u.id}`),
+        ]);
+
+        const callsInRange = calls.filter(c => inRange(c.createdAt || c.completedAt || c.updatedAt));
+        const apptsInRange = appts.filter(a => inRange(a.start || a.createdAt || a.updatedAt));
+        const dealsInRange = deals.filter(d => inRange(d.createdAt || d.updatedAt));
+
+        const dials     = callsInRange.filter(c =>
+          (c.type||'').toLowerCase().includes('outbound') ||
+          (c.direction||'').toLowerCase() === 'outbound').length;
+        const connected = callsInRange.filter(c => (c.duration||0) > 0 || (c.disposition||'').toLowerCase() === 'connected').length;
+        const talkSec   = callsInRange.reduce((s,c) => s + (c.duration||0), 0);
+        const attended  = apptsInRange.filter(a =>
+          (a.outcome||'').toLowerCase() === 'attended' || a.attended === true).length;
+
+        return {
+          userId: u.id, name: u.name, email: u.email,
+          dials, connectedCalls: connected,
+          talkTimeMin: Math.round(talkSec / 60),
+          appts: apptsInRange.length, apptsAttended: attended,
+          showRate: apptsInRange.length ? Math.round((attended / apptsInRange.length) * 100) : 0,
+          dialToConnect: dials ? Math.round((connected / dials) * 100) : 0,
+          offers:    dealsInRange.filter(d => (d.stage||'').toLowerCase().includes('offer')).length,
+          verbals:   dealsInRange.filter(d => (d.stage||'').toLowerCase().includes('verbal')).length,
+          contracts: dealsInRange.filter(d => {
+            const s = (d.stage||'').toLowerCase();
+            return s.includes('contract') || s.includes('sign') || s.includes('pending');
+          }).length,
+          debug: { totalCalls: calls.length, inRange: callsInRange.length },
+        };
+      } catch(e) {
+        return { userId: u.id, name: u.name, error: e.message };
+      }
+    }));
+
+    res.json({ ok: true, agents: results });
   } catch (e) {
     res.status(400).json({ ok: false, error: e.message });
   }
 });
 
-// All agents KPI summary (for homepage leaderboard)
-app.get('/api/kpi/all', async (req, res) => {
-  try {
-    const usersData = await fubFetch('/users');
-    const users = usersData.users || [];
-    const startDate = '2026-01-01';
-    const endDate = new Date().toISOString().split('T')[0];
-
-    const results = await Promise.all(users.map(async u => {
-      try {
-        const [callsData, apptData, dealsData] = await Promise.all([
-          fubFetch(`/calls?limit=500&userId=${u.id}&created[gte]=${startDate}&created[lte]=${endDate}`),
-          fubFetch(`/appointments?limit=500&assignedTo=${u.id}&start[gte]=${startDate}&start[lte]=${endDate}`),
-          fubFetch(`/deals?limit=500&assignedTo=${u.id}&created[gte]=${startDate}&created[lte]=${endDate}`),
-        ]);
-        const calls = callsData.calls || [];
-        const appts = apptData.appointments || [];
-        const deals = dealsData.deals || [];
-        const attended = appts.filter(a => a.outcome==='attended'||a.attended).length;
-        const dials = calls.filter(c => c.type==='outbound'||c.direction==='outbound'||!c.direction).length;
-        const connected = calls.filter(c => c.duration>0).length;
-        const talkSec = calls.reduce((s,c)=>s+(c.duration||0),0);
-        return {
-          userId: u.id, name: u.name, email: u.email,
-          dials, connectedCalls: connected,
-          talkTimeMin: Math.round(talkSec/60),
-          appts: appts.length, apptsAttended: attended,
-          showRate: appts.length ? Math.round((attended/appts.length)*100) : 0,
-          dialToConnect: dials ? Math.round((connected/dials)*100) : 0,
-          offers: deals.filter(d=>(d.stage||'').toLowerCase().includes('offer')).length,
-          verbals: deals.filter(d=>(d.stage||'').toLowerCase().includes('verbal')).length,
-          contracts: deals.filter(d=>(d.stage||'').toLowerCase().includes('contract')||((d.stage||'').toLowerCase().includes('sign'))).length,
-        };
-      } catch { return { userId: u.id, name: u.name, error: true }; }
-    }));
-
-    res.json({ ok: true, agents: results });
-  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
-});
-
 app.listen(PORT, () => {
-  console.log(`\n🚀 FUB KPI Dashboard running at http://localhost:${PORT}`);
-  console.log(`   API key configured: ${!!process.env.FUB_API_KEY}\n`);
+  console.log(`\n🚀 FUB KPI Dashboard at http://localhost:${PORT}`);
+  console.log(`   API key set: ${!!process.env.FUB_API_KEY}`);
+  console.log(`\n   Debug endpoints:`);
+  console.log(`   /api/debug/calls           — inspect raw call fields`);
+  console.log(`   /api/debug/calls?limit=1   — single record`);
+  console.log(`   /api/debug/appointments?limit=1`);
+  console.log(`   /api/debug/deals?limit=1\n`);
 });
