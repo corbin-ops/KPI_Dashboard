@@ -146,7 +146,7 @@ function enrich(map) {
     period,
     dials: m.dials,
     connectedCalls: m.connectedCalls,
-    talkTimeMin: Math.round(m.talkSec / 60),
+    talkTimeHrs: Math.round(m.talkSec / 3600 * 10) / 10,
     appts: m.appts,
     apptsAttended: m.apptsAttended,
     showRate: m.appts ? Math.round(m.apptsAttended/m.appts*100) : 0,
@@ -165,11 +165,20 @@ function addCalls(calls, wMap, mMap) {
     if (!inRange(ds)) continue;
     n++;
     const w = weekKey(ds), mo = monthKey(ds);
-    // isIncoming=false → outbound → dial
-    if (c.isIncoming === false) { ensure(wMap,w).dials++; ensure(mMap,mo).dials++; }
-    // duration > 0 → connected (any direction, matches FUB "Connected" metric)
     const dur = Number(c.duration) || 0;
-    if (dur > 0) { ensure(wMap,w).connectedCalls++; ensure(mMap,mo).connectedCalls++; }
+    // isIncoming=false = outbound = "Calls Made" in FUB reporting
+    // isIncoming=true  = inbound  = "Received" in FUB reporting
+    // isIncoming=null  = unknown  — exclude from dials to avoid overcounting
+    if (c.isIncoming === false) {
+      ensure(wMap,w).dials++;
+      ensure(mMap,mo).dials++;
+      // Connected = outbound call with duration > 0
+      if (dur > 0) {
+        ensure(wMap,w).connectedCalls++;
+        ensure(mMap,mo).connectedCalls++;
+      }
+    }
+    // Talk time = all calls with duration regardless of direction
     ensure(wMap,w).talkSec += dur;
     ensure(mMap,mo).talkSec += dur;
   }
@@ -302,43 +311,83 @@ app.get('/api/kpi', async (req,res) => {
   }
 });
 
-// All-agent leaderboard
+// All-agent leaderboard — each agent fetched independently with own wMap/mMap
 app.get('/api/kpi/all', async (req,res) => {
   const cached = cacheGet('kpi_all');
   if (cached) return res.json(cached);
   try {
     const { users=[] } = await fubFetch('/users');
     const agents = [];
+
     for (const u of users) {
+      // Check if we already have this user's full KPI cached
+      const userCached = cacheGet(`kpi_u_${u.id}`);
+      if (userCached) {
+        // Derive summary from cached weekly data
+        const weekly = userCached.weekly || [];
+        const dials   = weekly.reduce((s,p)=>s+p.dials,0);
+        const conn    = weekly.reduce((s,p)=>s+p.connectedCalls,0);
+        const talkHrs = weekly.reduce((s,p)=>s+p.talkTimeHrs,0);
+        const appts   = weekly.reduce((s,p)=>s+p.appts,0);
+        const att     = weekly.reduce((s,p)=>s+p.apptsAttended,0);
+        const offers  = weekly.reduce((s,p)=>s+p.offers,0);
+        const verbals = weekly.reduce((s,p)=>s+p.verbals,0);
+        const contracts= weekly.reduce((s,p)=>s+p.contracts,0);
+        agents.push({
+          userId:u.id, name:u.name, email:u.email,
+          dials, connectedCalls:conn,
+          talkTimeHrs: Math.round(talkHrs*10)/10,
+          appts, apptsAttended:att,
+          showRate: appts ? Math.round(att/appts*100):0,
+          dialToConnect: dials ? Math.round(conn/dials*100):0,
+          offers, verbals, contracts,
+        });
+        continue;
+      }
+
       try {
         console.log(`[KPI/all] → ${u.name}`);
+        // Each user gets their own independent maps
+        const uWMap = {}, uMMap = {};
         const calls = await fetchAll('calls', `&userId=${u.id}`);
         const appts = await fetchAllAppts(`&userId=${u.id}`);
         const deals = await fetchAll('deals', `&userId=${u.id}`);
 
-        const cr = calls.filter(c => inRange(callDate(c)));
-        const ar = appts.filter(a => inRange(apptDate(a)));
-        const dr = deals.filter(d => inRange(dealDate(d)));
+        addCalls(calls, uWMap, uMMap);
+        addAppts(appts, uWMap, uMMap);
+        addDeals(deals, uWMap, uMMap);
 
-        // isIncoming=false = outbound = "Calls Made" in FUB reporting
-        const dials   = cr.filter(c => c.isIncoming === false).length;
-        const conn    = cr.filter(c => (Number(c.duration)||0) > 0).length;
-        const talkSec = cr.reduce((s,c) => s+(Number(c.duration)||0), 0);
-        const att     = ar.filter(a => (a.outcome||'').toLowerCase()==='attended'||a.attended===true).length;
+        const weekly  = enrich(uWMap);
+        const monthly = enrich(uMMap);
+
+        // Cache the full trend data for this user
+        cacheSet(`kpi_u_${u.id}`, { ok:true, weekly, monthly });
+
+        // Derive totals from weekly periods
+        const dials    = weekly.reduce((s,p)=>s+p.dials,0);
+        const conn     = weekly.reduce((s,p)=>s+p.connectedCalls,0);
+        const talkHrs  = weekly.reduce((s,p)=>s+p.talkTimeHrs,0);
+        const apptCnt  = weekly.reduce((s,p)=>s+p.appts,0);
+        const att      = weekly.reduce((s,p)=>s+p.apptsAttended,0);
 
         agents.push({
           userId:u.id, name:u.name, email:u.email,
-          dials, connectedCalls:conn, talkTimeMin:Math.round(talkSec/60),
-          appts:ar.length, apptsAttended:att,
-          showRate: ar.length ? Math.round(att/ar.length*100) : 0,
-          dialToConnect: dials ? Math.round(conn/dials*100) : 0,
-          offers:    dr.filter(d=>(d.stageName||d.stage||'').toLowerCase().includes('offer')).length,
-          verbals:   dr.filter(d=>(d.stageName||d.stage||'').toLowerCase().includes('verbal')).length,
-          contracts: dr.filter(d=>{ const s=(d.stageName||d.stage||'').toLowerCase(); return s.includes('contract')||s.includes('sign')||s.includes('pending')||s.includes('win'); }).length,
+          dials, connectedCalls:conn,
+          talkTimeHrs: Math.round(talkHrs*10)/10,
+          appts:apptCnt, apptsAttended:att,
+          showRate: apptCnt ? Math.round(att/apptCnt*100):0,
+          dialToConnect: dials ? Math.round(conn/dials*100):0,
+          offers:   weekly.reduce((s,p)=>s+p.offers,0),
+          verbals:  weekly.reduce((s,p)=>s+p.verbals,0),
+          contracts:weekly.reduce((s,p)=>s+p.contracts,0),
         });
         await sleep(200);
-      } catch(e) { agents.push({ userId:u.id, name:u.name, error:e.message }); }
+      } catch(e) {
+        console.error(`  error for ${u.name}:`, e.message);
+        agents.push({ userId:u.id, name:u.name, error:e.message });
+      }
     }
+
     const result = { ok:true, agents };
     cacheSet('kpi_all', result);
     res.json(result);

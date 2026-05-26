@@ -471,7 +471,7 @@ function renderTeamView(dash, monthFilter) {
         <div class="chart-wrap tall"><canvas id="chart-dials"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">Talk time (min)</div>
+        <div class="chart-title">Talk time (hrs)</div>
         <div class="chart-wrap"><canvas id="chart-talk"></canvas></div>
       </div>
       <div class="chart-card">
@@ -487,7 +487,7 @@ function renderTeamView(dash, monthFilter) {
     {label:'Connected', data:periods.map(p=>p.connectedCalls), color:'rgba(61,255,160,0.8)'},
   ]);
   drawChart('chart-talk', periods.map(p=>p.period), [
-    {label:'Talk time (min)', data:periods.map(p=>p.talkTimeMin), color:'rgba(255,179,64,0.8)'},
+    {label:'Talk time (hrs)', data:periods.map(p=>p.talkTimeHrs), color:'rgba(255,179,64,0.8)'},
   ]);
   drawChart('chart-appts', periods.map(p=>p.period), [
     {label:'Booked', data:periods.map(p=>p.appts), color:'rgba(91,156,246,0.6)'},
@@ -496,24 +496,31 @@ function renderTeamView(dash, monthFilter) {
 }
 
 function renderAgentView(dash, userId, monthFilter) {
-  const agentSummary = kpiData[userId];
-  if (!agentSummary) {
-    dash.innerHTML = `<div class="state-box"><div class="state-title loading-dots">Loading agent data</div></div>`;
-    fetch(`/api/kpi?userId=${userId}&start=2026-01-01`).then(r=>r.json()).then(d => {
-      kpiData['_agent_'+userId] = d;
-      renderAgentView(dash, userId, monthFilter);
-    });
-    return;
-  }
+  // First ensure we have per-agent trend data from /api/kpi?userId=
   const agentKPI = kpiData['_agent_'+userId];
   if (!agentKPI) {
-    dash.innerHTML = `<div class="state-box"><div class="state-title loading-dots">Loading trend data</div></div>`;
-    fetch(`/api/kpi?userId=${userId}&start=2026-01-01`).then(r=>r.json()).then(d => {
+    dash.innerHTML = `<div class="state-box"><div class="state-title loading-dots">Loading agent data</div></div>`;
+    fetch(`/api/kpi?userId=${userId}`).then(r=>r.json()).then(d => {
       kpiData['_agent_'+userId] = d;
       renderAgentView(dash, userId, monthFilter);
     });
     return;
   }
+
+  // Derive totals from the full weekly dataset (not filtered) for KPI cards
+  const allWeekly = agentKPI.weekly || [];
+  const agentSummary = {
+    dials:          allWeekly.reduce((s,p)=>s+p.dials,0),
+    connectedCalls: allWeekly.reduce((s,p)=>s+p.connectedCalls,0),
+    talkTimeHrs:    Math.round(allWeekly.reduce((s,p)=>s+(p.talkTimeHrs||0),0)*10)/10,
+    appts:          allWeekly.reduce((s,p)=>s+p.appts,0),
+    apptsAttended:  allWeekly.reduce((s,p)=>s+p.apptsAttended,0),
+    offers:         allWeekly.reduce((s,p)=>s+p.offers,0),
+    verbals:        allWeekly.reduce((s,p)=>s+p.verbals,0),
+    contracts:      allWeekly.reduce((s,p)=>s+p.contracts,0),
+  };
+  agentSummary.showRate      = agentSummary.appts ? Math.round(agentSummary.apptsAttended/agentSummary.appts*100) : 0;
+  agentSummary.dialToConnect = agentSummary.dials ? Math.round(agentSummary.connectedCalls/agentSummary.dials*100) : 0;
 
   const periods = filterByMonth((agentKPI[currentPeriod]||[]), monthFilter);
 
@@ -540,7 +547,7 @@ function renderAgentView(dash, userId, monthFilter) {
     {label:'Connected', data:periods.map(p=>p.connectedCalls), color:'rgba(61,255,160,0.8)'},
   ]);
   drawChart('chart-talk', periods.map(p=>p.period), [
-    {label:'Talk time (min)', data:periods.map(p=>p.talkTimeMin), color:'rgba(255,179,64,0.8)'},
+    {label:'Talk time (hrs)', data:periods.map(p=>p.talkTimeHrs), color:'rgba(255,179,64,0.8)'},
   ]);
   drawChart('chart-appts', periods.map(p=>p.period), [
     {label:'Booked', data:periods.map(p=>p.appts), color:'rgba(91,156,246,0.6)'},
@@ -578,7 +585,7 @@ function renderKPICards(d, isTeam) {
     </div>
     <div class="kpi-card amber">
       <div class="kpi-label">Talk time</div>
-      <div class="kpi-val">${(d.talkTimeMin||0).toLocaleString()}<span style="font-size:14px;font-weight:400"> min</span></div>
+      <div class="kpi-val">${(d.talkTimeHrs||0).toLocaleString()}<span style="font-size:14px;font-weight:400"> hrs</span></div>
       <div class="kpi-sub">total talk time</div>
       <span class="kpi-tag live">live</span>
     </div>
@@ -627,7 +634,7 @@ function renderAgentTable(agents) {
       <td>${(a.dials||0).toLocaleString()}</td>
       <td>${(a.connectedCalls||0).toLocaleString()}</td>
       <td class="${drColor}">${dr}% <span class="td-calc">calc</span></td>
-      <td>${Math.round(a.talkTimeMin||0).toLocaleString()}</td>
+      <td>${(a.talkTimeHrs||0).toLocaleString()}</td>
       <td>${a.appts||0}</td>
       <td class="${srColor}">${sr}% <span class="td-calc">calc</span></td>
       <td>${a.offers||0}</td>
@@ -643,7 +650,7 @@ function renderAgentTable(agents) {
     <table>
       <thead><tr>
         <th>Agent</th><th>Dials</th><th>Connected</th><th>Connect %</th>
-        <th>Talk (min)</th><th>Appts</th><th>Show %</th>
+        <th>Talk (hrs)</th><th>Appts</th><th>Show %</th>
         <th>Offers</th><th>Verbals</th><th>Contracts</th>
       </tr></thead>
       <tbody>${rows}</tbody>
