@@ -81,13 +81,15 @@ function inRange(dateStr) {
 
 // Extract best date from a call record — try ALL known FUB date field names
 function getCallDate(c) {
-  return c.createdAt || c.completedAt || c.updatedAt || c.callAt || c.startedAt || c.date || null;
+  // FUB actual field is 'created', not 'createdAt'
+  return c.created || c.createdAt || c.startedAt || c.completedAt || c.updatedAt || null;
 }
 function getApptDate(a) {
-  return a.start || a.startDate || a.createdAt || a.date || null;
+  return a.start || a.startDate || a.created || a.createdAt || null;
 }
 function getDealDate(d) {
-  return d.createdAt || d.updatedAt || d.closedAt || null;
+  // FUB actual field is 'created', not 'createdAt'
+  return d.created || d.createdAt || d.enteredStageAt || d.updatedAt || null;
 }
 
 function getWeekKey(dateStr) {
@@ -186,12 +188,11 @@ app.get('/api/kpi', async (req, res) => {
       if (!inRange(dateStr)) return;
       ci++;
       const w = getWeekKey(dateStr), mo = getMonthKey(dateStr);
-      // Count ALL calls as dials; separate outbound check
-      const isOut = (c.type||'').toLowerCase()==='outbound'
-                 || (c.direction||'').toLowerCase()==='outbound'
-                 || (c.isOutbound === true);
-      // If we can't determine direction, count everything as a dial
-      if (isOut || (!c.type && !c.direction && c.isOutbound === undefined)) {
+      // FUB uses isIncoming boolean — outbound = isIncoming false
+      const isOut = c.isIncoming === false || c.isIncoming === 0;
+      const isIn  = c.isIncoming === true  || c.isIncoming === 1;
+      // Count outbound as dials; if field missing count all
+      if (isOut || c.isIncoming === undefined) {
         ensure(wMap,w).dials++; ensure(mMap,mo).dials++;
       }
       const dur = Number(c.duration)||Number(c.durationSeconds)||Number(c.length)||0;
@@ -216,7 +217,8 @@ app.get('/api/kpi', async (req, res) => {
       if (!inRange(dateStr)) return;
       di++;
       const w = getWeekKey(dateStr), mo = getMonthKey(dateStr);
-      const stage = (d.stage||d.stageName||d.pipelineStage||'').toString().toLowerCase();
+      // FUB actual field is 'stageName'
+      const stage = (d.stageName||d.stage||d.pipelineStage||'').toString().toLowerCase();
       if (stage.includes('offer'))  { ensure(wMap,w).offers++;   ensure(mMap,mo).offers++; }
       if (stage.includes('verbal')) { ensure(wMap,w).verbals++;  ensure(mMap,mo).verbals++; }
       if (stage.includes('contract')||stage.includes('sign')||stage.includes('pending')||stage.includes('pa')) {
@@ -269,15 +271,11 @@ app.get('/api/kpi/all', async (req, res) => {
         const cr = calls.filter(c => inRange(getCallDate(c)));
         const ar = appts.filter(a => inRange(getApptDate(a)));
         const dr = deals.filter(d => inRange(getDealDate(d)));
+        console.log(`[${u.name}] inRange → calls:${cr.length}/${calls.length} appts:${ar.length}/${appts.length} deals:${dr.length}/${deals.length}`);
 
-        const dials = cr.filter(c =>
-          (c.type||'').toLowerCase()==='outbound' ||
-          (c.direction||'').toLowerCase()==='outbound' ||
-          c.isOutbound===true ||
-          (!c.type && !c.direction && c.isOutbound===undefined)
-        ).length;
-        const conn = cr.filter(c => (Number(c.duration)||Number(c.durationSeconds)||0)>0).length;
-        const talkSec = cr.reduce((s,c)=>s+(Number(c.duration)||Number(c.durationSeconds)||0),0);
+        const dials = cr.filter(c => c.isIncoming === false || c.isIncoming === 0 || c.isIncoming === undefined).length;
+        const conn = cr.filter(c => (Number(c.duration)||0)>0).length;
+        const talkSec = cr.reduce((s,c)=>s+(Number(c.duration)||0),0);
         const att = ar.filter(a=>(a.outcome||'').toLowerCase()==='attended'||a.attended===true).length;
 
         results.push({
@@ -287,9 +285,9 @@ app.get('/api/kpi/all', async (req, res) => {
           appts:ar.length, apptsAttended:att,
           showRate: ar.length ? Math.round((att/ar.length)*100):0,
           dialToConnect: dials ? Math.round((conn/dials)*100):0,
-          offers:    dr.filter(d=>(d.stage||'').toLowerCase().includes('offer')).length,
-          verbals:   dr.filter(d=>(d.stage||'').toLowerCase().includes('verbal')).length,
-          contracts: dr.filter(d=>{ const s=(d.stage||'').toLowerCase(); return s.includes('contract')||s.includes('sign')||s.includes('pending')||s.includes('pa'); }).length,
+          offers:    dr.filter(d=>(d.stageName||d.stage||'').toLowerCase().includes('offer')).length,
+          verbals:   dr.filter(d=>(d.stageName||d.stage||'').toLowerCase().includes('verbal')).length,
+          contracts: dr.filter(d=>{ const s=(d.stageName||d.stage||'').toLowerCase(); return s.includes('contract')||s.includes('sign')||s.includes('pending')||s.includes('pa')||s.includes('win'); }).length,
         });
         await sleep(300);
       } catch(e) {
