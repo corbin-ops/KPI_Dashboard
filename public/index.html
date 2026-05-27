@@ -487,7 +487,7 @@ function renderTeamView(dash, monthFilter) {
     {label:'Connected', data:periods.map(p=>p.connectedCalls), color:'rgba(61,255,160,0.8)'},
   ]);
   drawChart('chart-talk', periods.map(p=>p.period), [
-    {label:'Talk time (hrs)', data:periods.map(p=>p.talkTimeHrs), color:'rgba(255,179,64,0.8)'},
+    {label:'Talk time (hrs)', data:periods.map(p=>Math.round((p.talkTimeSec||0)/3600*10)/10), color:'rgba(255,179,64,0.8)'},
   ]);
   drawChart('chart-appts', periods.map(p=>p.period), [
     {label:'Booked', data:periods.map(p=>p.appts), color:'rgba(91,156,246,0.6)'},
@@ -547,7 +547,7 @@ function renderAgentView(dash, userId, monthFilter) {
     {label:'Connected', data:periods.map(p=>p.connectedCalls), color:'rgba(61,255,160,0.8)'},
   ]);
   drawChart('chart-talk', periods.map(p=>p.period), [
-    {label:'Talk time (hrs)', data:periods.map(p=>p.talkTimeHrs), color:'rgba(255,179,64,0.8)'},
+    {label:'Talk time (hrs)', data:periods.map(p=>Math.round((p.talkTimeSec||0)/3600*10)/10), color:'rgba(255,179,64,0.8)'},
   ]);
   drawChart('chart-appts', periods.map(p=>p.period), [
     {label:'Booked', data:periods.map(p=>p.appts), color:'rgba(91,156,246,0.6)'},
@@ -556,16 +556,20 @@ function renderAgentView(dash, userId, monthFilter) {
 }
 
 function sumPeriods(periods) {
-  const t = {dials:0,connectedCalls:0,talkTimeMin:0,appts:0,apptsAttended:0,offers:0,verbals:0,contracts:0,textsSent:0,textsReceived:0};
+  const t = {dials:0,connectedCalls:0,talkTimeSec:0,talkTimeHrs:0,appts:0,apptsAttended:0,offers:0,verbals:0,contracts:0};
   periods.forEach(p => {
-    t.dials+=p.dials; t.connectedCalls+=p.connectedCalls; t.talkTimeMin+=p.talkTimeMin;
-    t.appts+=p.appts; t.apptsAttended+=p.apptsAttended;
-    t.offers+=p.offers; t.verbals+=p.verbals; t.contracts+=p.contracts;
-    t.textsSent+=p.textsSent; t.textsReceived+=p.textsReceived;
+    t.dials          += p.dials         || 0;
+    t.connectedCalls += p.connectedCalls|| 0;
+    t.talkTimeSec    += p.talkTimeSec   || 0; // sum raw seconds for accuracy
+    t.appts          += p.appts         || 0;
+    t.apptsAttended  += p.apptsAttended || 0;
+    t.offers         += p.offers        || 0;
+    t.verbals        += p.verbals       || 0;
+    t.contracts      += p.contracts     || 0;
   });
+  t.talkTimeHrs  = Math.round(t.talkTimeSec / 3600 * 10) / 10;
   t.dialToConnect = t.dials ? Math.round((t.connectedCalls/t.dials)*100) : 0;
-  t.showRate = t.appts ? Math.round((t.apptsAttended/t.appts)*100) : 0;
-  t.responseRate = t.textsSent ? Math.round((t.textsReceived/t.textsSent)*100) : 0;
+  t.showRate      = t.appts ? Math.round((t.apptsAttended/t.appts)*100)  : 0;
   return t;
 }
 
