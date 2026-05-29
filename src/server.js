@@ -8,20 +8,35 @@ import { readdirSync, readFileSync, existsSync } from 'fs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_DIR = join(__dirname, '../data');
+
+// Try multiple possible data directory locations
+function findDataDir() {
+  const candidates = [
+    join(__dirname, '../data'),
+    join(process.cwd(), 'data'),
+    join(__dirname, 'data'),
+    '/opt/render/project/src/data',
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) {
+      console.log('[DATA] Found data dir:', p);
+      return p;
+    }
+    console.log('[DATA] Not found:', p);
+  }
+  return null;
+}
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(join(__dirname, '../public')));
 
-// ── Native CSV parser (no dependencies) ──────────────────────────────────────
+// ── CSV parser (no deps) ──────────────────────────────────────────────────────
 function parseCSV(text) {
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
   if (lines.length < 2) return [];
-  // Handle quoted fields
   function splitLine(line) {
-    const cols = [];
-    let cur = '', inQ = false;
+    const cols = []; let cur = '', inQ = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') { inQ = !inQ; continue; }
@@ -36,255 +51,190 @@ function parseCSV(text) {
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
     const vals = splitLine(lines[i]);
-    if (vals.every(v => !v)) continue;
     const row = {};
-    headers.forEach((h, idx) => { row[h.trim()] = vals[idx] ?? ''; });
-    rows.push(row);
+    headers.forEach((h, idx) => { row[h.trim()] = (vals[idx] ?? '').trim(); });
+    if (row[headers[0].trim()]) rows.push(row);  // skip empty name rows
   }
   return rows;
 }
 
-// ── Talk time parser: "1 day 15 hours" → decimal hours ───────────────────────
 function parseTalkHours(s) {
   if (!s || String(s).trim() === '') return 0;
   const str = String(s).toLowerCase();
   const d = str.match(/(\d+)\s*day/);
   const h = str.match(/(\d+)\s*hour/);
   const m = str.match(/(\d+)\s*min/);
-  const total = (d ? parseInt(d[1]) * 24 : 0) +
-                (h ? parseInt(h[1]) : 0) +
-                (m ? parseInt(m[1]) / 60 : 0);
-  return Math.round(total * 100) / 100;
+  return Math.round(((d ? parseInt(d[1]) * 24 : 0) + (h ? parseInt(h[1]) : 0) + (m ? parseInt(m[1]) / 60 : 0)) * 100) / 100;
 }
 
 function safeNum(v) {
-  if (v === null || v === undefined || String(v).trim() === '') return 0;
-  const n = parseFloat(String(v).replace(/[^0-9.\-]/g, ''));
+  if (!v && v !== 0) return 0;
+  const n = parseFloat(String(v).replace(/[^\d.\-]/g, ''));
   return isNaN(n) ? 0 : n;
 }
 
-// ── Month ordering ────────────────────────────────────────────────────────────
 const MONTH_ORDER = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const SHORT_MONTHS = {January:'Jan',February:'Feb',March:'Mar',April:'Apr',May:'May',June:'Jun',July:'Jul',August:'Aug',September:'Sep',October:'Oct',November:'Nov',December:'Dec'};
+const SHORT = {January:'Jan',February:'Feb',March:'Mar',April:'Apr',May:'May',June:'Jun',July:'Jul',August:'Aug',September:'Sep',October:'Oct',November:'Nov',December:'Dec'};
 
-// ── Load all CSVs and build dataset ──────────────────────────────────────────
-function buildDataset() {
-  console.log('[DATA] Loading CSVs from:', DATA_DIR);
-
-  if (!existsSync(DATA_DIR)) {
-    console.error('[DATA] ERROR: /data directory not found at', DATA_DIR);
-    return { records: [], months: [] };
+// ── Load CSVs ─────────────────────────────────────────────────────────────────
+function loadCSVs() {
+  const dataDir = findDataDir();
+  if (!dataDir) {
+    console.error('[DATA] CRITICAL: No data directory found');
+    return { records: [], months: [], agents: [] };
   }
 
-  const files = readdirSync(DATA_DIR).filter(f => f.endsWith('.csv'));
-  console.log('[DATA] Files found:', files);
+  let files;
+  try { files = readdirSync(dataDir).filter(f => f.endsWith('.csv')); }
+  catch (e) { console.error('[DATA] Cannot read dir:', e.message); return { records: [], months: [], agents: [] }; }
 
-  const callsMap    = {};  // month → rows
-  const activityMap = {};  // month → rows
+  console.log('[DATA] CSV files:', files);
 
+  const callsMap = {}, actMap = {};
   for (const file of files) {
-    const match = file.match(/^([A-Za-z]+)-(calls|agent-activity)-export\.csv$/i);
-    if (!match) { console.log('[DATA] skipping:', file); continue; }
-    const month = match[1];
-    const type  = match[2].toLowerCase();
-    const content = readFileSync(join(DATA_DIR, file), 'utf8');
-    const rows = parseCSV(content);
-    console.log(`[DATA] ${file}: ${rows.length} rows, headers: ${rows[0] ? Object.keys(rows[0]).slice(0,5).join(', ') : 'none'}`);
-    if (type === 'calls') callsMap[month] = rows;
-    else activityMap[month] = rows;
+    const m = file.match(/^([A-Za-z]+)-(calls|agent-activity)-export\.csv$/i);
+    if (!m) continue;
+    const month = m[1], type = m[2].toLowerCase();
+    try {
+      const rows = parseCSV(readFileSync(join(dataDir, file), 'utf8'));
+      console.log(`[DATA] ${file} → ${rows.length} rows, cols: ${rows[0] ? Object.keys(rows[0]).join('|') : 'none'}`);
+      if (type === 'calls') callsMap[month] = rows;
+      else actMap[month] = rows;
+    } catch(e) { console.error('[DATA] Error reading', file, e.message); }
   }
 
-  const allMonths = [...new Set([...Object.keys(callsMap), ...Object.keys(activityMap)])]
+  const months = [...new Set([...Object.keys(callsMap), ...Object.keys(actMap)])]
     .sort((a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b));
 
-  console.log('[DATA] Months found:', allMonths);
-
   const records = [];
-  for (const month of allMonths) {
+  for (const month of months) {
     const callRows = callsMap[month] || [];
-    const actRows  = activityMap[month] || [];
-
-    // Index by name
+    const actRows  = actMap[month]   || [];
     const byName = {};
-    for (const r of actRows)  { if (r.Name) byName[r.Name.trim()] = { act: r, call: {} }; }
-    for (const r of callRows) { if (r.Name) {
-      if (!byName[r.Name.trim()]) byName[r.Name.trim()] = { act: {}, call: r };
-      else byName[r.Name.trim()].call = r;
-    }}
-
-    for (const [name, { act, call }] of Object.entries(byName)) {
-      const callsMade = safeNum(call['Calls Made']);
-      const connected = safeNum(call['Connected']);
-      const talkHrs   = parseTalkHours(call['Total Talk Time']);
-      const apptsSet  = safeNum(act['Appointments Set']);
-      const apptsAtt  = safeNum(act['Appointments']);
-
+    actRows.forEach(r  => { if(r.Name) byName[r.Name.trim()] = { a: r, c: null }; });
+    callRows.forEach(r => {
+      const n = r.Name?.trim();
+      if (!n) return;
+      if (!byName[n]) byName[n] = { a: {}, c: r };
+      else byName[n].c = r;
+    });
+    for (const [name, { a, c }] of Object.entries(byName)) {
+      if (!name) continue;
+      const callsMade = safeNum(c?.['Calls Made']);
+      const connected = safeNum(c?.['Connected']);
+      const talkHrs   = parseTalkHours(c?.['Total Talk Time']);
+      const apptsSet  = safeNum(a?.['Appointments Set']);
+      const apptsAtt  = safeNum(a?.['Appointments']);
       records.push({
-        month, name,
-        // Calls
-        callsMade, connected, talkHrs,
-        conversations: safeNum(call['Conversations']),
-        received:      safeNum(call['Received']),
-        callsMissed:   safeNum(call['Calls Missed']),
-        // Calculated
-        dialToConnect: callsMade > 0 ? Math.round(connected / callsMade * 100) : 0,
-        // Activity
-        newLeads:       safeNum(act['New Leads']),
-        texts:          safeNum(act['Texts']),
-        emails:         safeNum(act['Emails']),
-        notes:          safeNum(act['Notes']),
-        tasksCompleted: safeNum(act['Tasks Completed']),
+        month, name, callsMade, connected, talkHrs,
         apptsSet, apptsAtt,
-        showRate: apptsSet > 0 ? Math.round(apptsAtt / apptsSet * 100) : 0,
-        // Speed metrics
-        avgSpeedFirstCall: safeNum(act['Average Speed to First Call (Minutes)']),
-        avgSpeedFirstText: safeNum(act['Average Speed to First Text Message (Minutes)']),
-        leadsNotActedOn:   safeNum(act['Leads Not Acted On']),
-        pctLeadsResponding: act['% of Leads Responding'] || '',
-        conversionRate:     act['Conversion Rate'] || '',
-        dealsClosed: safeNum(act['Deals Closed']),
+        texts:          safeNum(a?.['Texts']),
+        emails:         safeNum(a?.['Emails']),
+        notes:          safeNum(a?.['Notes']),
+        newLeads:       safeNum(a?.['New Leads']),
+        tasksCompleted: safeNum(a?.['Tasks Completed']),
+        dealsClosed:    safeNum(a?.['Deals Closed']),
+        leadsNotActedOn:safeNum(a?.['Leads Not Acted On']),
+        avgSpeedCall:   safeNum(a?.['Average Speed to First Call (Minutes)']),
+        avgSpeedText:   safeNum(a?.['Average Speed to First Text Message (Minutes)']),
+        pctResponding:  a?.['% of Leads Responding'] || '',
+        convRate:       a?.['Conversion Rate'] || '',
       });
     }
   }
 
-  console.log(`[DATA] Built ${records.length} records across ${allMonths.length} months`);
-  // Log sample record
-  if (records.length > 0) {
-    const sample = records[0];
-    console.log('[DATA] Sample:', JSON.stringify({
-      name: sample.name, month: sample.month,
-      callsMade: sample.callsMade, connected: sample.connected,
-      talkHrs: sample.talkHrs, apptsSet: sample.apptsSet,
-    }));
-  }
-
-  return { records, months: allMonths };
+  const agents = [...new Set(records.map(r => r.name))].sort();
+  console.log(`[DATA] ✓ ${records.length} records | months: ${months} | agents: ${agents}`);
+  return { records, months, agents };
 }
 
-// ── Pre-compute everything at startup ─────────────────────────────────────────
-const { records, months } = buildDataset();
+// ── Pre-compute ───────────────────────────────────────────────────────────────
+const { records, months, agents } = loadCSVs();
 
-function sumF(arr, f) { return arr.reduce((s, r) => s + (r[f] || 0), 0); }
-
-function toSeries(records, groupBy = 'month') {
+function buildSeries(recs) {
   const map = {};
-  for (const r of records) {
-    const key = r[groupBy];
-    if (!map[key]) map[key] = {
-      period: key, callsMade:0, connected:0, talkHrs:0,
-      apptsSet:0, apptsAtt:0, texts:0, newLeads:0, tasksCompleted:0,
-      dealsClosed:0, notes:0, emails:0,
-    };
-    const b = map[key];
-    b.callsMade     += r.callsMade;
-    b.connected     += r.connected;
-    b.talkHrs       += r.talkHrs;
-    b.apptsSet      += r.apptsSet;
-    b.apptsAtt      += r.apptsAtt;
-    b.texts         += r.texts;
-    b.newLeads      += r.newLeads;
-    b.tasksCompleted+= r.tasksCompleted;
-    b.dealsClosed   += r.dealsClosed;
-    b.notes         += r.notes;
-    b.emails        += r.emails;
+  for (const r of recs) {
+    const k = r.month;
+    if (!map[k]) map[k] = { p:k, cm:0, co:0, th:0, as:0, aa:0, tx:0, nl:0, tc:0, dc:0 };
+    const b = map[k];
+    b.cm += r.callsMade; b.co += r.connected; b.th += r.talkHrs;
+    b.as += r.apptsSet;  b.aa += r.apptsAtt;
+    b.tx += r.texts;     b.nl += r.newLeads;
+    b.tc += r.tasksCompleted; b.dc += r.dealsClosed;
   }
   return Object.values(map)
-    .sort((a, b) => MONTH_ORDER.indexOf(a.period) - MONTH_ORDER.indexOf(b.period))
+    .sort((a, b) => MONTH_ORDER.indexOf(a.p) - MONTH_ORDER.indexOf(b.p))
     .map(p => ({
-      period:         SHORT_MONTHS[p.period] || p.period,
-      dials:          p.callsMade,
-      connectedCalls: p.connected,
-      talkTimeHrs:    Math.round(p.talkHrs * 10) / 10,
-      talkTimeSec:    Math.round(p.talkHrs * 3600),
-      apptsSet:       p.apptsSet,
-      apptsAttended:  p.apptsAtt,
-      showRate:       p.apptsSet ? Math.round(p.apptsAtt / p.apptsSet * 100) : 0,
-      dialToConnect:  p.callsMade ? Math.round(p.connected / p.callsMade * 100) : 0,
-      texts:          p.texts,
-      newLeads:       p.newLeads,
-      tasksCompleted: p.tasksCompleted,
-      dealsClosed:    p.dealsClosed,
+      period:         SHORT[p.p] || p.p,
+      dials:          p.cm,
+      connectedCalls: p.co,
+      talkTimeHrs:    Math.round(p.th * 10) / 10,
+      talkTimeSec:    Math.round(p.th * 3600),
+      apptsSet:       p.as,
+      apptsAttended:  p.aa,
+      showRate:       p.as ? Math.round(p.aa / p.as * 100) : 0,
+      dialToConnect:  p.cm ? Math.round(p.co / p.cm * 100) : 0,
+      texts: p.tx, newLeads: p.nl, tasksCompleted: p.tc, dealsClosed: p.dc,
     }));
 }
 
-// Pre-build team + per-agent data
-const teamMonthly   = toSeries(records);
-const agentNames    = [...new Set(records.map(r => r.name))].sort();
-
-const agentData = {};
-for (const name of agentNames) {
-  const agRecs = records.filter(r => r.name === name);
-  const monthly = toSeries(agRecs);
-  const sum = f => monthly.reduce((s, p) => s + (p[f] || 0), 0);
-  const sumHrs = monthly.reduce((s, p) => s + (p.talkTimeSec || 0), 0);
-  agentData[name] = {
-    monthly,
-    totals: {
-      dials:          sum('dials'),
-      connectedCalls: sum('connectedCalls'),
-      talkTimeHrs:    Math.round(sumHrs / 3600 * 10) / 10,
-      apptsSet:       sum('apptsSet'),
-      apptsAttended:  sum('apptsAttended'),
-      showRate:       sum('apptsSet') ? Math.round(sum('apptsAttended') / sum('apptsSet') * 100) : 0,
-      dialToConnect:  sum('dials') ? Math.round(sum('connectedCalls') / sum('dials') * 100) : 0,
-      texts:          sum('texts'),
-      newLeads:       sum('newLeads'),
-      tasksCompleted: sum('tasksCompleted'),
-      dealsClosed:    sum('dealsClosed'),
-    }
+function buildTotals(series) {
+  const sum = f => series.reduce((s, p) => s + (p[f] || 0), 0);
+  const talkSec = sum('talkTimeSec');
+  const dials = sum('dials'), conn = sum('connectedCalls');
+  const aSet = sum('apptsSet'), aAtt = sum('apptsAttended');
+  return {
+    dials, connectedCalls: conn,
+    talkTimeHrs: Math.round(talkSec / 3600 * 10) / 10,
+    apptsSet: aSet, apptsAttended: aAtt,
+    showRate:      aSet  ? Math.round(aAtt  / aSet  * 100) : 0,
+    dialToConnect: dials ? Math.round(conn  / dials * 100) : 0,
+    texts: sum('texts'), newLeads: sum('newLeads'),
+    tasksCompleted: sum('tasksCompleted'), dealsClosed: sum('dealsClosed'),
   };
 }
 
-console.log('[DATA] Pre-computed agents:', agentNames);
+const teamSeries = buildSeries(records);
+const agentMap = {};
+for (const name of agents) {
+  const s = buildSeries(records.filter(r => r.name === name));
+  agentMap[name] = { monthly: s, totals: buildTotals(s) };
+}
 
-// ── Routes ─────────────────────────────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
-  res.json({ ok: records.length > 0, source: 'csv', recordCount: records.length, months });
-});
+// ── Routes ────────────────────────────────────────────────────────────────────
+app.get('/api/health', (req, res) => res.json({
+  ok: records.length > 0, source: 'csv',
+  recordCount: records.length, months, agents,
+}));
 
-app.get('/api/users', (req, res) => {
-  const users = agentNames.map(name => ({ id: name, name, email: '' }));
-  res.json({ ok: true, users });
-});
+app.get('/api/users', (req, res) => res.json({
+  ok: true, users: agents.map(n => ({ id: n, name: n, email: '' })),
+}));
 
-// Team or per-agent KPI — instant response from pre-computed data
 app.get('/api/kpi', (req, res) => {
   const { userId } = req.query;
-  if (userId && agentData[userId]) {
-    const d = agentData[userId];
-    res.json({ ok: true, monthly: d.monthly, weekly: d.monthly, source: 'csv' });
-  } else {
-    res.json({ ok: true, monthly: teamMonthly, weekly: teamMonthly, source: 'csv' });
-  }
+  const data = userId && agentMap[userId] ? agentMap[userId].monthly : teamSeries;
+  res.json({ ok: true, monthly: data, weekly: data, source: 'csv' });
 });
 
-// Leaderboard
 app.get('/api/kpi/all', (req, res) => {
-  const agents = agentNames.map(name => ({
-    userId: name, name, email: '',
-    ...agentData[name].totals,
-    appts: agentData[name].totals.apptsSet,
-    apptsAttended: agentData[name].totals.apptsAttended,
+  const agentList = agents.map(n => ({
+    userId: n, name: n, email: '',
+    ...agentMap[n].totals,
+    appts: agentMap[n].totals.apptsSet,
   }));
-  res.json({ ok: true, agents, source: 'csv' });
+  res.json({ ok: true, agents: agentList, source: 'csv' });
 });
 
-// Debug — inspect raw records
 app.get('/api/debug', (req, res) => {
   const { name } = req.query;
-  const filtered = name ? records.filter(r => r.name === name) : records.slice(0, 10);
-  res.json({ ok: true, count: records.length, months, agents: agentNames, sample: filtered });
-});
-
-// Hot reload (just restarts the data build — useful after adding new CSVs)
-app.get('/api/reload', (req, res) => {
-  res.json({ ok: false, message: 'Restart the server to reload CSV files (Render: manual deploy)' });
+  const sample = name
+    ? records.filter(r => r.name === name)
+    : records.slice(0, 5);
+  res.json({ ok: true, recordCount: records.length, months, agents, sample });
 });
 
 app.listen(PORT, () => {
-  console.log(`\n🚀 FUB KPI Dashboard (CSV) — http://localhost:${PORT}`);
-  console.log(`   Records: ${records.length} | Months: ${months.join(', ')} | Agents: ${agentNames.length}`);
-  console.log(`   Data dir: ${DATA_DIR}`);
-  console.log(`\n   Debug: /api/debug`);
-  console.log(`   Sample agent: /api/debug?name=Marie+Emara\n`);
+  console.log(`\n🚀 http://localhost:${PORT}`);
+  console.log(`   records:${records.length} months:${months} agents:${agents.length}\n`);
 });

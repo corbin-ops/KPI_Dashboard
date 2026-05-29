@@ -4,636 +4,473 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>FUB KPI Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#08090a;--bg2:#0f1012;--bg3:#16181c;--bg4:#1e2026;
-  --border:#232530;--border2:#2e313d;
-  --text:#f0f0f4;--muted:#5a5d6e;--muted2:#8b8fa8;
-  --green:#3dffa0;--green2:#00d97e;
-  --gdim:rgba(61,255,160,.08);--gbd:rgba(61,255,160,.25);
-  --amber:#ffb340;--adim:rgba(255,179,64,.08);--abd:rgba(255,179,64,.25);
-  --red:#ff5f5f;--rdim:rgba(255,95,95,.08);--rbd:rgba(255,95,95,.25);
-  --blue:#5b9cf6;--bdim:rgba(91,156,246,.08);--bbd:rgba(91,156,246,.25);
-  --mono:'DM Mono',monospace;--display:'Syne',sans-serif;
+  --br:#232530;--br2:#2e313d;
+  --tx:#f0f0f4;--mu:#5a5d6e;--mu2:#8b8fa8;
+  --gn:#3dffa0;--gn2:#00d97e;
+  --gdim:rgba(61,255,160,.08);--gbd:rgba(61,255,160,.28);
+  --am:#ffb340;--adim:rgba(255,179,64,.08);--abd:rgba(255,179,64,.28);
+  --rd:#ff5f5f;--rdim:rgba(255,95,95,.08);--rbd:rgba(255,95,95,.28);
+  --bl:#5b9cf6;--bdim:rgba(91,156,246,.08);--bbd:rgba(91,156,246,.28);
+  --mono:'DM Mono',monospace;--ui:'Syne',sans-serif;
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--display);font-size:14px;line-height:1.5;overflow:hidden}
-.shell{display:grid;grid-template-rows:50px 1fr;height:100vh}
-
-/* Nav */
-nav{display:flex;align-items:center;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px}
-.brand{font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:.15em;margin-right:28px}
-.nav-tabs{display:flex;height:100%}
-.nav-tab{padding:0 18px;font-family:var(--mono);font-size:11px;color:var(--muted2);border:none;background:transparent;cursor:pointer;height:100%;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
-.nav-tab.active{color:var(--green);border-bottom-color:var(--green)}
-.nav-tab:hover:not(.active){color:var(--text)}
-.nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--muted)}
-.dot.ok{background:var(--green);box-shadow:0 0 5px var(--green2)}
-.conn-label{font-family:var(--mono);font-size:10px;color:var(--muted2)}
-
-/* Pages */
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--ui);font-size:13px;overflow:hidden}
+.shell{display:grid;grid-template-rows:48px 1fr;height:100vh}
+nav{display:flex;align-items:center;background:var(--bg2);border-bottom:1px solid var(--br);padding:0 20px;gap:0}
+.brand{font-family:var(--mono);font-size:11px;color:var(--gn);letter-spacing:.15em;margin-right:26px}
+.tabs{display:flex;height:100%}
+.tab{padding:0 16px;font-family:var(--mono);font-size:11px;color:var(--mu2);border:none;background:transparent;cursor:pointer;height:100%;border-bottom:2px solid transparent}
+.tab.on{color:var(--gn);border-bottom-color:var(--gn)}
+.nr{margin-left:auto;display:flex;align-items:center;gap:7px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--mu)}
+.dot.ok{background:var(--gn);box-shadow:0 0 5px var(--gn2)}
+.nl{font-family:var(--mono);font-size:10px;color:var(--mu2)}
 .pages{overflow:hidden;height:100%}
-.page{display:none;height:100%;overflow-y:auto}
-.page.active{display:block}
+.pg{display:none;height:100%;overflow-y:auto}
+.pg.on{display:block}
 
-/* Dashboard layout */
-.dash-layout{display:grid;grid-template-columns:220px 1fr;height:100%}
+/* ── DASHBOARD LAYOUT ─────────────────── */
+.dlayout{display:grid;grid-template-columns:210px 1fr;height:100%}
+.sidebar{background:var(--bg2);border-right:1px solid var(--br);padding:16px 13px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.sbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--mu);text-transform:uppercase;margin-bottom:6px}
+.src-badge{font-family:var(--mono);font-size:10px;color:var(--gn);background:var(--gdim);border:1px solid var(--gbd);border-radius:4px;padding:6px 9px}
+select{width:100%;background:var(--bg3);border:1px solid var(--br2);border-radius:4px;color:var(--tx);font-family:var(--mono);font-size:10px;padding:7px 9px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a5d6e'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;cursor:pointer}
+.aglist{display:flex;flex-direction:column;gap:2px}
+.abtn{display:flex;align-items:center;gap:8px;padding:7px;border-radius:5px;cursor:pointer;border:1px solid transparent;background:transparent;width:100%;text-align:left}
+.abtn:hover{background:var(--bg3)}
+.abtn.on{background:var(--gdim);border-color:var(--gbd)}
+.abtn.on .av{border-color:var(--gn);color:var(--gn)}
+.av{width:28px;height:28px;border-radius:50%;background:var(--bg4);border:1px solid var(--br2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:var(--mu2);flex-shrink:0}
+.aname{font-size:12px;color:var(--tx)}
+.arole{font-family:var(--mono);font-size:9px;color:var(--mu2)}
 
-/* Sidebar */
-.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:18px 14px;display:flex;flex-direction:column;gap:18px;overflow-y:auto}
-.sb-label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:7px}
-.period-toggle{display:grid;grid-template-columns:1fr 1fr;gap:3px}
-.pb{padding:7px;border-radius:4px;font-family:var(--mono);font-size:10px;color:var(--muted2);background:var(--bg3);border:1px solid var(--border);cursor:pointer;text-align:center;transition:all .12s}
-.pb.active{color:var(--green);border-color:var(--gbd);background:var(--gdim)}
-select{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:10px;padding:7px 9px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a5d6e'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;cursor:pointer}
-.agent-list{display:flex;flex-direction:column;gap:3px}
-.agent-btn{display:flex;align-items:center;gap:8px;padding:7px;border-radius:5px;cursor:pointer;border:1px solid transparent;background:transparent;width:100%;text-align:left;transition:background .12s}
-.agent-btn:hover{background:var(--bg3)}
-.agent-btn.active{background:var(--gdim);border-color:var(--gbd)}
-.agent-btn.active .av{border-color:var(--green);color:var(--green)}
-.av{width:28px;height:28px;border-radius:50%;background:var(--bg4);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:var(--muted2);flex-shrink:0}
-.a-name{font-size:12px;color:var(--text)}
-.a-role{font-family:var(--mono);font-size:9px;color:var(--muted2)}
+/* ── MAIN AREA ─────────────────────────── */
+.main{overflow-y:auto;padding:18px}
 
-/* Main content */
-.main-content{overflow-y:auto;padding:20px}
+/* KPI cards */
+.kg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.kc{background:var(--bg2);border:1px solid var(--br);border-radius:7px;padding:12px 14px;position:relative;overflow:hidden}
+.kc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kc.gn::before{background:var(--gn)}.kc.bl::before{background:var(--bl)}
+.kc.am::before{background:var(--am)}.kc.rd::before{background:var(--rd)}
+.kl{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--mu2);text-transform:uppercase;margin-bottom:5px}
+.kv{font-size:20px;font-weight:700;color:var(--tx);line-height:1}
+.ks{font-family:var(--mono);font-size:9px;color:var(--mu);margin-top:3px}
+.ktag{position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:8px;padding:2px 5px;border-radius:2px;border:1px solid}
+.ktag.live{background:var(--gdim);color:var(--gn);border-color:var(--gbd)}
+.ktag.calc{background:var(--adim);color:var(--am);border-color:var(--abd)}
 
-/* KPI Cards */
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
-.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:13px 15px;position:relative;overflow:hidden}
-.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-.kpi-card.green::before{background:var(--green)}
-.kpi-card.blue::before{background:var(--blue)}
-.kpi-card.amber::before{background:var(--amber)}
-.kpi-card.red::before{background:var(--red)}
-.kpi-label{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted2);text-transform:uppercase;margin-bottom:5px}
-.kpi-val{font-size:22px;font-weight:700;color:var(--text);line-height:1}
-.kpi-sub{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px}
-.kpi-tag{position:absolute;top:11px;right:11px;font-family:var(--mono);font-size:8px;padding:2px 6px;border-radius:2px;border:1px solid}
-.kpi-tag.live{background:var(--gdim);color:var(--green);border-color:var(--gbd)}
-.kpi-tag.calc{background:var(--adim);color:var(--amber);border-color:var(--abd)}
+/* highlight pill on threshold cards */
+.thr{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid;margin-top:4px;display:inline-block}
+.thr.gn{background:var(--gdim);color:var(--gn);border-color:var(--gbd)}
+.thr.am{background:var(--adim);color:var(--am);border-color:var(--abd)}
+.thr.rd{background:var(--rdim);color:var(--rd);border-color:var(--rbd)}
 
-/* Connect rate — color by threshold */
-.cr-pill{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:500;padding:2px 7px;border-radius:3px;border:1px solid}
-.cr-green{background:var(--gdim);color:var(--green);border-color:var(--gbd)}
-.cr-amber{background:var(--adim);color:var(--amber);border-color:var(--abd)}
-.cr-red{background:var(--rdim);color:var(--red);border-color:var(--rbd)}
+/* charts */
+.cg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.cc{background:var(--bg2);border:1px solid var(--br);border-radius:7px;padding:14px}
+.cc.full{grid-column:1/-1}
+.ct{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--mu2);text-transform:uppercase;margin-bottom:10px}
+.cleg{display:flex;gap:12px;margin-bottom:8px;font-family:var(--mono);font-size:9px;color:var(--mu2)}
+.cleg span{display:flex;align-items:center;gap:4px}
+.cleg s{width:8px;height:8px;border-radius:2px;display:inline-block;text-decoration:none}
+.cw{height:160px;position:relative}.cw.t{height:185px}
 
-/* Charts */
-.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
-.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:15px}
-.chart-card.full{grid-column:1/-1}
-.chart-title{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--muted2);text-transform:uppercase;margin-bottom:10px}
-.chart-legend{display:flex;gap:12px;margin-bottom:8px;font-family:var(--mono);font-size:9px;color:var(--muted2)}
-.chart-legend span{display:flex;align-items:center;gap:4px}
-.chart-legend s{width:8px;height:8px;border-radius:2px;display:inline-block;text-decoration:none}
-.chart-wrap{height:160px;position:relative}
-.chart-wrap.tall{height:190px}
-
-/* Leaderboard */
-.table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:7px;overflow:hidden;margin-bottom:18px}
-.table-header{padding:11px 15px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--muted2);text-transform:uppercase}
+/* table */
+.tw{background:var(--bg2);border:1px solid var(--br);border-radius:7px;overflow:hidden;margin-bottom:16px}
+.th{padding:10px 14px;border-bottom:1px solid var(--br);font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--mu2);text-transform:uppercase}
 table{width:100%;border-collapse:collapse}
-th{font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;padding:8px 11px;text-align:right;border-bottom:1px solid var(--border)}
+th{font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--mu);text-transform:uppercase;padding:7px 10px;text-align:right;border-bottom:1px solid var(--br)}
 th:first-child{text-align:left}
-td{padding:9px 11px;font-size:11px;border-bottom:1px solid var(--border);text-align:right;color:var(--text)}
-td:first-child{text-align:left;font-size:12px;font-weight:500}
+td{padding:8px 10px;font-size:11px;border-bottom:1px solid var(--br);text-align:right;color:var(--tx)}
+td:first-child{text-align:left;font-size:12px;font-weight:600}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--bg3)}
 
-/* Marie qual section */
-.marie-panel{background:var(--bg2);border:1px solid var(--border);border-radius:7px;overflow:hidden;margin-bottom:18px}
-.marie-header{padding:11px 15px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
-.marie-title{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--green);text-transform:uppercase}
-.marie-sub{font-family:var(--mono);font-size:9px;color:var(--muted2);margin-top:1px}
-.marie-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--border)}
-.mstat{padding:13px 15px;border-right:1px solid var(--border)}
-.mstat:last-child{border-right:none}
-.mstat-label{font-family:var(--mono);font-size:8px;letter-spacing:.08em;color:var(--muted2);text-transform:uppercase;margin-bottom:4px}
-.mstat-val{font-size:20px;font-weight:700;line-height:1}
-.mstat-sub{font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:2px}
-.marie-detail{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0}
-.mdetail{padding:13px 15px;border-right:1px solid var(--border)}
-.mdetail:last-child{border-right:none}
-.mdetail-title{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--muted2);text-transform:uppercase;margin-bottom:9px}
-.obj-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
-.obj-label{font-size:10px;color:var(--muted2);min-width:118px}
-.obj-bar-wrap{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
-.obj-bar{height:100%;border-radius:2px;background:var(--amber)}
-.obj-count{font-family:var(--mono);font-size:9px;color:var(--muted2);min-width:22px;text-align:right}
-.pill-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
-.spill{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;border:1px solid}
-.month-badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
-.mbadge{font-family:var(--mono);font-size:9px;padding:3px 9px;border-radius:3px;background:var(--gdim);color:var(--green);border:1px solid var(--gbd)}
+/* agent detail */
+.agent-detail{margin-bottom:16px}
+.detail-header{background:var(--bg3);border:1px solid var(--br);border-radius:7px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.detail-name{font-size:18px;font-weight:700}
+.detail-role{font-family:var(--mono);font-size:10px;color:var(--mu2)}
+.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.detail-card{background:var(--bg2);border:1px solid var(--br);border-radius:7px;padding:12px 14px}
+.dc-label{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--mu2);text-transform:uppercase;margin-bottom:4px}
+.dc-val{font-size:22px;font-weight:700;line-height:1}
+.dc-sub{font-family:var(--mono);font-size:9px;color:var(--mu);margin-top:2px}
 
-/* Explorer */
-.explorer-wrap{padding:22px;max-width:900px}
-.explorer-title{font-size:20px;font-weight:700;margin-bottom:4px}
-.explorer-sub{font-family:var(--mono);font-size:10px;color:var(--muted2);margin-bottom:20px}
-.exp-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;font-family:var(--mono);font-size:9px;color:var(--muted2)}
-.exp-legend span{display:flex;align-items:center;gap:5px}
-.exp-legend s{width:8px;height:8px;border-radius:2px;text-decoration:none;display:inline-block}
-.exp-row{display:grid;grid-template-columns:190px 82px 1fr;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg2)}
-.exp-pill{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;border:1px solid;text-align:center}
+/* Marie qual */
+.mp{background:var(--bg2);border:1px solid var(--br);border-radius:7px;overflow:hidden;margin-bottom:16px}
+.mph{padding:11px 15px;background:var(--bg3);border-bottom:1px solid var(--br);display:flex;align-items:center;gap:10px}
+.mpt{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--gn);text-transform:uppercase}
+.mps{font-family:var(--mono);font-size:9px;color:var(--mu2)}
+.mstats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--br)}
+.ms{padding:12px 14px;border-right:1px solid var(--br)}.ms:last-child{border-right:none}
+.msl{font-family:var(--mono);font-size:8px;letter-spacing:.08em;color:var(--mu2);text-transform:uppercase;margin-bottom:4px}
+.msv{font-size:20px;font-weight:700;line-height:1}
+.msb{font-family:var(--mono);font-size:9px;color:var(--mu);margin-top:2px}
+.mrows{display:grid;grid-template-columns:1fr 1fr 1fr}
+.mr{padding:12px 14px;border-right:1px solid var(--br)}.mr:last-child{border-right:none}
+.mrt{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--mu2);text-transform:uppercase;margin-bottom:8px}
+.ob{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.obl{font-size:10px;color:var(--mu2);min-width:115px}
+.obw{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.obb{height:100%;border-radius:2px;background:var(--am)}
+.obc{font-family:var(--mono);font-size:9px;color:var(--mu2);min-width:22px;text-align:right}
+.pill{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;border:1px solid;display:inline-block;margin:2px}
 
-/* Loading state */
-.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--muted2)}
-.loading-title{font-family:var(--mono);font-size:13px;color:var(--muted2)}
-.loading-sub{font-size:11px;color:var(--muted)}
+/* error/empty */
+.err{display:flex;flex-direction:column;align-items:center;justify-content:center;height:80%;gap:10px;color:var(--mu2);font-family:var(--mono);font-size:12px}
 
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+/* explorer */
+.exwrap{padding:22px;max-width:900px}
+.exr{display:grid;grid-template-columns:180px 82px 1fr;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--br);background:var(--bg2)}
+.exp{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;border:1px solid;text-align:center}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--br2);border-radius:2px}
 </style>
 </head>
 <body>
 <div class="shell">
 <nav>
   <div class="brand">FUB // KPI</div>
-  <div class="nav-tabs">
-    <button class="nav-tab active" onclick="switchTab('dashboard',this)">Dashboard</button>
-    <button class="nav-tab" onclick="switchTab('explorer',this)">Metric Explorer</button>
+  <div class="tabs">
+    <button class="tab on" onclick="goPg('dash',this)">Dashboard</button>
+    <button class="tab" onclick="goPg('exp',this)">Metric Explorer</button>
   </div>
-  <div class="nav-right">
-    <div class="dot" id="status-dot"></div>
-    <div class="conn-label" id="status-label">loading...</div>
+  <div class="nr">
+    <div class="dot" id="sdot"></div>
+    <div class="nl" id="slbl">connecting...</div>
   </div>
 </nav>
-
 <div class="pages">
 
 <!-- DASHBOARD -->
-<div class="page active" id="page-dashboard">
-  <div class="dash-layout" style="height:100%">
-    <aside class="sidebar">
-      <div>
-        <div class="sb-label">Data source</div>
-        <div style="font-family:var(--mono);font-size:10px;color:var(--green);background:var(--gdim);border:1px solid var(--gbd);border-radius:4px;padding:6px 9px">CSV exports · Jan–Apr 2026</div>
-      </div>
-      <div>
-        <div class="sb-label">Month filter</div>
-        <select id="month-filter" onchange="applyFilters()">
-          <option value="all">All months (Jan–Apr)</option>
-          <option value="Jan">January 2026</option>
-          <option value="Feb">February 2026</option>
-          <option value="Mar">March 2026</option>
-          <option value="Apr">April 2026</option>
-        </select>
-      </div>
-      <div>
-        <div class="sb-label">Agent</div>
-        <div class="agent-list" id="agent-list">
-          <button class="agent-btn active" onclick="selectAgent('all',this)">
-            <div class="av">ALL</div>
-            <div><div class="a-name">All agents</div><div class="a-role">team view</div></div>
-          </button>
-        </div>
-      </div>
-    </aside>
-    <div class="main-content" id="main-content">
-      <div class="loading">
-        <div class="loading-title">Loading KPI data...</div>
-        <div class="loading-sub">Reading from CSV exports</div>
-      </div>
+<div class="pg on" id="pg-dash">
+<div class="dlayout" style="height:100%">
+<aside class="sidebar">
+  <div><div class="sbl">Data source</div>
+    <div class="src-badge" id="src-badge">CSV exports</div></div>
+  <div><div class="sbl">Month</div>
+    <select id="mf" onchange="render()">
+      <option value="all">All months (Jan–Apr)</option>
+      <option value="Jan">January 2026</option>
+      <option value="Feb">February 2026</option>
+      <option value="Mar">March 2026</option>
+      <option value="Apr">April 2026</option>
+    </select>
+  </div>
+  <div><div class="sbl">Agent</div>
+    <div class="aglist" id="aglist">
+      <button class="abtn on" onclick="pick('all',this)">
+        <div class="av">ALL</div>
+        <div><div class="aname">All agents</div><div class="arole">team view</div></div>
+      </button>
     </div>
   </div>
+</aside>
+<div class="main" id="main">
+  <div class="err">
+    <div>Loading data...</div>
+    <div style="font-size:10px;color:var(--mu)">Connecting to server</div>
+  </div>
+</div>
+</div>
 </div>
 
 <!-- EXPLORER -->
-<div class="page" id="page-explorer">
-  <div class="explorer-wrap">
-    <div class="explorer-title">Metric Explorer</div>
-    <div class="explorer-sub">CSV data source · metrics available from FUB monthly exports</div>
-    <div class="exp-legend">
-      <span><s style="background:var(--green)"></s>available — direct from FUB export</span>
-      <span><s style="background:var(--blue)"></s>calculated — standard formula</span>
-      <span><s style="background:var(--red)"></s>not in standard exports</span>
-    </div>
-    <div id="exp-content"></div>
+<div class="pg" id="pg-exp">
+<div class="exwrap">
+  <div style="font-size:18px;font-weight:700;margin-bottom:4px">Metric Explorer</div>
+  <div style="font-family:var(--mono);font-size:10px;color:var(--mu2);margin-bottom:18px">CSV data source · Jan–Apr 2026</div>
+  <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;font-family:var(--mono);font-size:9px;color:var(--mu2)">
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--gn);display:inline-block"></span>available</span>
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--bl);display:inline-block"></span>calculated</span>
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--rd);display:inline-block"></span>not in exports</span>
   </div>
+  <div id="exrows"></div>
+</div>
 </div>
 
 </div>
 </div>
 
 <script>
-// ─── Data (loaded from API) ────────────────────────────────────────────────
-let allAgents = [];
-let kpiByAgent = {};   // name → {monthly:[...]}
-let kpiTeam   = {};    // {monthly:[...]}
-let selectedAgent = 'all';
-let charts = {};
+// ── State ──────────────────────────────────────────────────────────────────
+let teamData=[], allAgents=[], agentKPI={}, leaderboard=[];
+let selAgent='all', charts={};
 
-// Marie lead qualification data from Google Sheet
-const MARIE_QUAL = {
-  totalLeads:154, apptsBooked:145, bookRate:94,
-  avgMotivation:7.1, highMotPct:49,
-  motivated:106, unmotivated:18,
-  objections:[
-    {label:'Pricing',n:112},{label:'Comparing Options',n:18},
-    {label:'Needs Spouse Approval',n:13},{label:'Not Interested',n:5},{label:'Already With Agent',n:3},
-  ],
-  personalities:[{label:'Laid-back',n:108,cls:'b'},{label:'Blue-collar',n:21,cls:'a'},{label:'Emotional',n:15,cls:'r'},{label:'Analytical',n:8,cls:'g'}],
-  monthlyBooked:[{m:'Mar',n:47},{m:'Apr',n:63},{m:'May',n:35}],
+const ROLES={
+  'Corbin Garcia':'Acquisitions','Marie Emara':'New Lead Intake',
+  'Hugo Galicia':'Realtor/Title','Emma Lopez':'Follow-Up Specialist',
+  'Chenge Makoni':'SMS/Lead Push','Micheal Suarez':'Acquisitions Mgr',
+  'Tapiwa Pasipamire':'Admin','Yusuf Ashraf':'Admin',
+};
+const INI={
+  'Corbin Garcia':'CO','Marie Emara':'MA','Hugo Galicia':'HU',
+  'Emma Lopez':'EM','Chenge Makoni':'CT','Micheal Suarez':'MS',
+  'Tapiwa Pasipamire':'TP','Yusuf Ashraf':'YA',
 };
 
-
-// ─── Per-agent KPI thresholds ─────────────────────────────────────────────
-// talk time in hours, dials as count
-const THRESHOLDS = {
-  'Marie Emara': {
-    talkHrs: { green: 2.5, yellow: 2.0 },   // ≥2.5 green, ≥2.0 yellow, else red
-    dials:    { green: 100, yellow: 70 },
-  },
-  'Micheal Suarez': {
-    talkHrs: { green: 3.0, yellow: 2.5 },
-    dials:    { green: 100, yellow: 70 },
-  },
+// Per-agent thresholds: {talkTimeHrs:{green,yellow}, dials:{green,yellow}}
+const THR={
+  'Marie Emara':    {talkTimeHrs:{green:2.5,yellow:2.0},  dials:{green:100,yellow:70}},
+  'Micheal Suarez': {talkTimeHrs:{green:3.0,yellow:2.5},  dials:{green:100,yellow:70}},
 };
 
-function metricColor(agentName, metric, value){
-  const t = THRESHOLDS[agentName];
-  if(!t || !t[metric]) return null; // no threshold = no highlight
-  const { green, yellow } = t[metric];
-  if(value >= green)  return 'green';
-  if(value >= yellow) return 'amber';
-  return 'red';
+function thrClass(name,metric,val){
+  const t=THR[name]?.[metric]; if(!t) return null;
+  return val>=t.green?'gn':val>=t.yellow?'am':'rd';
 }
+function thrLabel(cls){ return cls==='gn'?'✓ on target':cls==='am'?'⚠ near target':'↓ below target'; }
+function crCls(pct){ return pct>=50?'gn':pct>=40?'am':'rd'; }
+function showColor(sr){ return sr>=70?'var(--gn)':sr>=50?'var(--am)':'var(--rd)'; }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
-function crClass(pct){ return pct>=50?'green':pct>=40?'amber':'red'; }
-function crPillClass(pct){ return pct>=50?'cr-green':pct>=40?'cr-amber':'cr-red'; }
-function showClass(pct){ return pct>=70?'var(--green)':pct>=50?'var(--amber)':'var(--red)'; }
+const MARIE_QUAL={
+  total:154,booked:145,rate:94,avgMot:7.1,highMotPct:49,motivated:106,unmotivated:18,
+  objections:[{l:'Pricing',n:112},{l:'Comparing Options',n:18},{l:'Needs Spouse Approval',n:13},{l:'Not Interested',n:5},{l:'Already With Agent',n:3}],
+  personalities:[{l:'Laid-back',n:108,c:'bl'},{l:'Blue-collar',n:21,c:'am'},{l:'Emotional',n:15,c:'rd'},{l:'Analytical',n:8,c:'gn'}],
+  monthly:[{m:'Mar',n:47},{m:'Apr',n:63},{m:'May',n:35}],
+};
 
-function sumField(arr,f){ return arr.reduce((s,p)=>s+(p[f]||0),0); }
-
-function toTotals(monthly){
-  const calls=sumField(monthly,'dials'), conn=sumField(monthly,'connectedCalls');
-  const apptsSet=sumField(monthly,'apptsSet'), apptsAtt=sumField(monthly,'apptsAttended');
-  return {
-    calls, connected:conn,
-    talkHrs:Math.round(sumField(monthly,'talkTimeHrs')*10)/10,
-    apptsSet, apptsAtt,
-    texts:sumField(monthly,'texts'),
-    tasks:sumField(monthly,'tasksCompleted'),
-    newLeads:sumField(monthly,'newLeads'),
-    cr:calls?Math.round(conn/calls*100):0,
-    showRate:apptsSet?Math.round(apptsAtt/apptsSet*100):0,
-  };
-}
-
-// ─── API calls ─────────────────────────────────────────────────────────────
+// ── Boot ──────────────────────────────────────────────────────────────────
 async function boot(){
+  // 1. Health
+  let health;
   try {
-    // Health check
-    const h = await fetch('/api/health').then(r=>r.json());
-    const dot = document.getElementById('status-dot');
-    const lbl = document.getElementById('status-label');
-    if(h.ok){
-      dot.classList.add('ok');
-      lbl.textContent = `csv · ${(h.months||[]).join(', ')}`;
-    } else {
-      lbl.textContent = 'error'; return;
-    }
-
-    // Users
-    const ud = await fetch('/api/users').then(r=>r.json());
-    allAgents = ud.users || [];
-    buildAgentPicker();
-
-    // Team KPI
-    const teamData = await fetch('/api/kpi').then(r=>r.json());
-    kpiTeam = teamData;
-
-    renderDashboard();
+    health = await fetch('/api/health',{signal:AbortSignal.timeout(8000)}).then(r=>r.json());
   } catch(e) {
-    document.getElementById('status-label').textContent = 'error: '+e.message;
-    document.getElementById('main-content').innerHTML = `
-      <div class="loading">
-        <div class="loading-title">Connection error</div>
-        <div class="loading-sub">${e.message}</div>
-      </div>`;
+    showErr('Cannot reach server: '+e.message+'. Check Render logs.');
+    return;
+  }
+  if(!health.ok){
+    showErr('Server reached but no CSV data found. Check /api/debug in browser. Records: '+health.recordCount);
+    return;
+  }
+  document.getElementById('sdot').classList.add('ok');
+  document.getElementById('slbl').textContent = `csv · ${(health.months||[]).join(', ')}`;
+  document.getElementById('src-badge').textContent = `CSV · ${(health.months||[]).join(' · ')}`;
+
+  // 2. Users
+  const ud = await fetch('/api/users').then(r=>r.json());
+  allAgents = (ud.users||[]).filter(u=>ROLES[u.name]||u.name);
+  buildAgentList();
+
+  // 3. Team KPI
+  const td = await fetch('/api/kpi').then(r=>r.json());
+  teamData = td.monthly || [];
+
+  // 4. Leaderboard
+  const ld = await fetch('/api/kpi/all').then(r=>r.json());
+  leaderboard = ld.agents || [];
+
+  render();
+}
+
+function showErr(msg){
+  document.getElementById('sdot').style.background='var(--rd)';
+  document.getElementById('slbl').textContent='error';
+  document.getElementById('main').innerHTML=`<div class="err"><div style="color:var(--rd)">⚠ ${msg}</div><div style="font-size:10px;margin-top:8px">Open <span style="color:var(--gn)">your-render-url/api/debug</span> in browser to diagnose.</div></div>`;
+}
+
+function buildAgentList(){
+  const list = document.getElementById('aglist');
+  const allBtn=`<button class="abtn on" onclick="pick('all',this)"><div class="av">ALL</div><div><div class="aname">All agents</div><div class="arole">team view</div></div></button>`;
+  const btns = allAgents.map(u=>`<button class="abtn" onclick="pick('${u.id}',this)">
+    <div class="av">${INI[u.name]||u.name.slice(0,2).toUpperCase()}</div>
+    <div><div class="aname">${u.name}</div><div class="arole">${ROLES[u.name]||''}</div></div>
+  </button>`).join('');
+  list.innerHTML = allBtn+btns;
+}
+
+async function pick(id,btn){
+  selAgent=id;
+  document.querySelectorAll('.abtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(id!=='all' && !agentKPI[id]){
+    document.getElementById('main').innerHTML='<div class="err"><div>Loading agent data...</div></div>';
+    const d = await fetch(`/api/kpi?userId=${encodeURIComponent(id)}`).then(r=>r.json());
+    agentKPI[id] = d.monthly||[];
+  }
+  render();
+}
+
+function render(){
+  const mf = document.getElementById('mf').value;
+  Object.values(charts).forEach(c=>c.destroy()); charts={};
+  const main = document.getElementById('main');
+
+  if(selAgent==='all'){
+    let data = teamData;
+    if(mf!=='all') data = data.filter(p=>p.period===mf);
+    const t = totals(data);
+    main.innerHTML = kpiCards(t,null)+chartsHtml()+leaderboardHtml();
+    drawCharts(data);
+  } else {
+    const agent = allAgents.find(u=>u.id===selAgent);
+    const name = agent?.name||selAgent;
+    let data = agentKPI[selAgent]||[];
+    if(mf!=='all') data = data.filter(p=>p.period===mf);
+    const t = totals(data);
+    const isMarie = name==='Marie Emara';
+    main.innerHTML = agentDetailHtml(name,t)+kpiCards(t,name)+chartsHtml()+(isMarie?marieQualHtml():'');
+    drawCharts(data);
   }
 }
 
-function buildAgentPicker(){
-  const ROLES = {
-    'Corbin Garcia':'Acquisitions','Marie Emara':'New Lead Intake',
-    'Hugo Galicia':'Realtor/Title','Emma Lopez':'Follow-Up Specialist',
-    'Chenge Makoni':'SMS/Lead Push',
+function totals(data){
+  const sum=f=>data.reduce((s,p)=>s+(p[f]||0),0);
+  const sec=data.reduce((s,p)=>s+(p.talkTimeSec||0),0);
+  const d=sum('dials'),c=sum('connectedCalls'),as=sum('apptsSet'),aa=sum('apptsAttended');
+  return{
+    dials:d,connectedCalls:c,
+    talkTimeHrs:sec?Math.round(sec/3600*10)/10:Math.round(sum('talkTimeHrs')*10)/10,
+    apptsSet:as,apptsAttended:aa,
+    cr:d?Math.round(c/d*100):0,
+    showRate:as?Math.round(aa/as*100):0,
+    texts:sum('texts'),newLeads:sum('newLeads'),
+    tasksCompleted:sum('tasksCompleted'),dealsClosed:sum('dealsClosed'),
   };
-  const INITIALS = {
-    'Corbin Garcia':'CO','Marie Emara':'MA','Hugo Galicia':'HU',
-    'Emma Lopez':'EM','Chenge Makoni':'CT',
-  };
-  const list = document.getElementById('agent-list');
-  const allBtn = `<button class="agent-btn active" onclick="selectAgent('all',this)">
-    <div class="av">ALL</div>
-    <div><div class="a-name">All agents</div><div class="a-role">team view</div></div>
-  </button>`;
-  const agentBtns = allAgents
-    .filter(u=>ROLES[u.name])
-    .map(u=>`<button class="agent-btn" onclick="selectAgent('${u.id}',this)">
-      <div class="av">${INITIALS[u.name]||u.name.slice(0,2).toUpperCase()}</div>
-      <div><div class="a-name">${u.name}</div><div class="a-role">${ROLES[u.name]||''}</div></div>
-    </button>`).join('');
-  list.innerHTML = allBtn + agentBtns;
 }
 
-async function selectAgent(id, btn){
-  selectedAgent = id;
-  document.querySelectorAll('.agent-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+// ── KPI Cards ──────────────────────────────────────────────────────────────
+function kpiCards(d,name){
+  const dialCls = thrClass(name,'dials',d.dials)||'bl';
+  const talkCls = thrClass(name,'talkTimeHrs',d.talkTimeHrs)||'am';
+  const crC = crCls(d.cr);
 
-  if(id !== 'all' && !kpiByAgent[id]){
-    document.getElementById('main-content').innerHTML = `<div class="loading"><div class="loading-title">Loading agent data...</div></div>`;
-    const data = await fetch(`/api/kpi?userId=${encodeURIComponent(id)}`).then(r=>r.json());
-    kpiByAgent[id] = data;
-  }
-  renderDashboard();
-}
-
-function applyFilters(){ renderDashboard(); }
-
-// ─── Render ────────────────────────────────────────────────────────────────
-function renderDashboard(){
-  const monthFilter = document.getElementById('month-filter').value;
-  const main = document.getElementById('main-content');
-  Object.values(charts).forEach(c=>c.destroy()); charts = {};
-
-  const source = selectedAgent==='all' ? kpiTeam : kpiByAgent[selectedAgent];
-  if(!source){ main.innerHTML=`<div class="loading"><div class="loading-title">Loading...</div></div>`; return; }
-
-  let monthly = source.monthly || [];
-  if(monthFilter!=='all') monthly = monthly.filter(p=>p.period===monthFilter);
-
-  const totals = toTotals(monthly);
-  const isMarie = selectedAgent!=='all' && allAgents.find(u=>u.id===selectedAgent)?.name==='Marie Emara';
-  const agentName = selectedAgent!=='all' ? allAgents.find(u=>u.id===selectedAgent)?.name : null;
-
-  // Leaderboard data — load all agents if team view
-  let leaderboardHtml = '';
-  if(selectedAgent==='all'){
-    leaderboardHtml = renderLeaderboard();
+  function thrBadge(cls,val,metric){
+    if(!cls||!THR[name]?.[metric]) return '';
+    return `<div class="thr ${cls}">${thrLabel(cls)}</div>`;
   }
 
-  main.innerHTML =
-    renderKPICards(totals, agentName) +
-    renderCharts(monthly, monthFilter, agentName) +
-    leaderboardHtml +
-    (isMarie ? renderMarieQual() : '');
-
-  drawCharts(monthly);
-}
-
-function renderKPICards(d, agentName){
-  const crCls = crClass(d.cr);
-  const srColor = d.showRate>=70?'var(--green)':d.showRate>=50?'var(--amber)':'var(--red)';
-  return `<div class="kpi-grid">
-    ${(()=>{
-      const dialColor = metricColor(agentName,'dials',d.calls||0) || 'blue';
-      const dialThresh = THRESHOLDS[agentName]?.dials;
-      const dialNote = dialThresh ? (d.calls>=dialThresh.green?'✓ on target':d.calls>=dialThresh.yellow?'⚠ near target':'↓ below target') : 'outbound calls';
-      const dialNoteColor = dialThresh ? (d.calls>=dialThresh.green?'var(--green)':d.calls>=dialThresh.yellow?'var(--amber)':'var(--red)') : 'var(--muted)';
-      return \`<div class="kpi-card \${dialColor}">
-        <div class="kpi-label">Calls Made</div>
-        <div class="kpi-val">\${(d.calls||0).toLocaleString()}</div>
-        <div class="kpi-sub" style="color:\${dialNoteColor}">\${dialNote}</div>
-        <span class="kpi-tag live">live</span>
-      </div>\`;
-    })()}
-    <div class="kpi-card green">
-      <div class="kpi-label">Connected Calls</div>
-      <div class="kpi-val">${(d.connected||0).toLocaleString()}</div>
-      <div class="kpi-sub">duration &gt; 0s</div>
-      <span class="kpi-tag live">live</span>
+  return `<div class="kg">
+    <div class="kc ${dialCls}">
+      <div class="kl">Calls Made</div>
+      <div class="kv">${d.dials.toLocaleString()}</div>
+      <div class="ks">${name&&THR[name]?.dials?`target ≥${THR[name].dials.green}`:'outbound calls'}</div>
+      ${thrBadge(dialCls,d.dials,'dials')}
+      <span class="ktag live">live</span>
     </div>
-    ${(()=>{
-      const talkColor = metricColor(agentName,'talkHrs',d.talkHrs||0) || 'amber';
-      const talkThresh = THRESHOLDS[agentName]?.talkHrs;
-      const talkNote = talkThresh ? (d.talkHrs>=talkThresh.green?'✓ on target':d.talkHrs>=talkThresh.yellow?'⚠ near target':'↓ below target') : 'total talk time';
-      const talkNoteColor = talkThresh ? (d.talkHrs>=talkThresh.green?'var(--green)':d.talkHrs>=talkThresh.yellow?'var(--amber)':'var(--red)') : 'var(--muted)';
-      return \`<div class="kpi-card \${talkColor}">
-        <div class="kpi-label">Talk Time</div>
-        <div class="kpi-val">\${d.talkHrs||0}<span style="font-size:14px;font-weight:400"> hrs</span></div>
-        <div class="kpi-sub" style="color:\${talkNoteColor}">\${talkNote}</div>
-        <span class="kpi-tag live">live</span>
-      </div>\`;
-    })()}
-    <div class="kpi-card ${crCls}">
-      <div class="kpi-label">Connect Rate</div>
-      <div class="kpi-val">${d.cr||0}<span style="font-size:14px;font-weight:400">%</span></div>
-      <div class="kpi-sub" style="color:${crCls==='green'?'var(--green)':crCls==='amber'?'var(--amber)':'var(--red)'}">
-        ${d.cr>=50?'✓ on target':d.cr>=40?'⚠ watch':'↓ below target'}
-      </div>
-      <span class="kpi-tag calc">calculated</span>
+    <div class="kc gn">
+      <div class="kl">Connected Calls</div>
+      <div class="kv">${d.connectedCalls.toLocaleString()}</div>
+      <div class="ks">duration &gt; 0s</div>
+      <span class="ktag live">live</span>
     </div>
-    <div class="kpi-card blue">
-      <div class="kpi-label">Appts Set</div>
-      <div class="kpi-val">${(d.apptsSet||0).toLocaleString()}</div>
-      <div class="kpi-sub">appointments booked</div>
-      <span class="kpi-tag live">live</span>
+    <div class="kc ${talkCls}">
+      <div class="kl">Talk Time</div>
+      <div class="kv">${d.talkTimeHrs}<span style="font-size:13px;font-weight:400"> hrs</span></div>
+      <div class="ks">${name&&THR[name]?.talkTimeHrs?`target ≥${THR[name].talkTimeHrs.green}h`:'total talk time'}</div>
+      ${thrBadge(talkCls,d.talkTimeHrs,'talkTimeHrs')}
+      <span class="ktag live">live</span>
     </div>
-    <div class="kpi-card green">
-      <div class="kpi-label">Appts Attended</div>
-      <div class="kpi-val">${(d.apptsAtt||0).toLocaleString()}</div>
-      <div class="kpi-sub">show rate: ${d.showRate||0}%</div>
-      <span class="kpi-tag live">live</span>
+    <div class="kc ${crC}">
+      <div class="kl">Connect Rate</div>
+      <div class="kv">${d.cr}<span style="font-size:13px;font-weight:400">%</span></div>
+      <div class="ks" style="color:${crC==='gn'?'var(--gn)':crC==='am'?'var(--am)':'var(--rd)'}">${crC==='gn'?'✓ on target':crC==='am'?'⚠ watch':'↓ below target'} · target ≥50%</div>
+      <span class="ktag calc">calculated</span>
     </div>
-    <div class="kpi-card amber">
-      <div class="kpi-label">Show Rate</div>
-      <div class="kpi-val" style="color:${srColor}">${d.showRate||0}<span style="font-size:14px;font-weight:400">%</span></div>
-      <div class="kpi-sub">target 70–80%</div>
-      <span class="kpi-tag calc">calculated</span>
+    <div class="kc bl">
+      <div class="kl">Appts Set</div>
+      <div class="kv">${d.apptsSet.toLocaleString()}</div>
+      <div class="ks">appointments booked</div>
+      <span class="ktag live">live</span>
     </div>
-    <div class="kpi-card blue">
-      <div class="kpi-label">Texts Sent</div>
-      <div class="kpi-val">${(d.texts||0).toLocaleString()}</div>
-      <div class="kpi-sub">outbound texts</div>
-      <span class="kpi-tag live">live</span>
+    <div class="kc gn">
+      <div class="kl">Appts Attended</div>
+      <div class="kv">${d.apptsAttended.toLocaleString()}</div>
+      <div class="ks">show rate: ${d.showRate}%</div>
+      <span class="ktag live">live</span>
+    </div>
+    <div class="kc am">
+      <div class="kl">Show Rate</div>
+      <div class="kv" style="color:${showColor(d.showRate)}">${d.showRate}<span style="font-size:13px;font-weight:400">%</span></div>
+      <div class="ks">target 70–80%</div>
+      <span class="ktag calc">calculated</span>
+    </div>
+    <div class="kc bl">
+      <div class="kl">Texts Sent</div>
+      <div class="kv">${d.texts.toLocaleString()}</div>
+      <div class="ks">outbound texts</div>
+      <span class="ktag live">live</span>
     </div>
   </div>`;
 }
 
-function renderCharts(monthly, monthFilter, agentName){
-  const title = monthFilter==='all' ? 'monthly trend' : monthFilter+' 2026';
-  return `<div class="chart-grid">
-    <div class="chart-card full">
-      <div class="chart-title">Calls Made &amp; Connected — ${title}</div>
-      <div class="chart-legend">
-        <span><s style="background:#85B7EB"></s>Calls Made</span>
-        <span><s style="background:#3dffa0"></s>Connected</span>
-      </div>
-      <div class="chart-wrap tall"><canvas id="ch-calls" role="img" aria-label="Calls made vs connected calls by month">Monthly call data.</canvas></div>
+// ── Agent detail header ──────────────────────────────────────────────────────
+function agentDetailHtml(name,d){
+  const ini=INI[name]||name.slice(0,2).toUpperCase();
+  const role=ROLES[name]||'';
+  return `<div class="detail-header">
+    <div class="av" style="width:38px;height:38px;font-size:11px;border-color:var(--gn);color:var(--gn)">${ini}</div>
+    <div>
+      <div class="detail-name">${name}</div>
+      <div class="detail-role">${role} · Jan–Apr 2026 YTD</div>
     </div>
-    <div class="chart-card">
-      <div class="chart-title">Talk time (hrs)</div>
-      <div class="chart-legend"><span><s style="background:#ffb340"></s>Hours</span></div>
-      <div class="chart-wrap"><canvas id="ch-talk" role="img" aria-label="Talk time in hours by month">Talk time data.</canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Appts Set vs Attended</div>
-      <div class="chart-legend">
-        <span><s style="background:#85B7EB"></s>Set</span>
-        <span><s style="background:#3dffa0"></s>Attended</span>
+    <div style="margin-left:auto;display:flex;gap:10px">
+      <div style="text-align:right">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">New Leads</div>
+        <div style="font-size:18px;font-weight:700;color:var(--bl)">${d.newLeads.toLocaleString()}</div>
       </div>
-      <div class="chart-wrap"><canvas id="ch-appts" role="img" aria-label="Appointments set vs attended">Appointment data.</canvas></div>
-    </div>
-  </div>`;
-}
-
-function renderLeaderboard(){
-  // Use kpiTeam monthly to derive per-agent — or show from /api/kpi/all if loaded
-  // For now show a note
-  return `<div id="leaderboard-container">
-    <div class="table-wrap">
-      <div class="table-header">Agent leaderboard — loading...</div>
-    </div>
-  </div>`;
-}
-
-function renderMarieQual(){
-  const q = MARIE_QUAL;
-  const maxObj = q.objections[0].n;
-  return `<div class="marie-panel">
-    <div class="marie-header">
-      <div class="av" style="border-color:var(--green);color:var(--green);width:32px;height:32px;font-size:10px">MA</div>
-      <div>
-        <div class="marie-title">Marie Emara — Lead Qualification Tracker</div>
-        <div class="marie-sub">Mar–May 2026 · ${q.totalLeads} leads qualified · Google Sheet data</div>
-      </div>
-    </div>
-    <div class="marie-stats">
-      <div class="mstat">
-        <div class="mstat-label">Leads Qualified</div>
-        <div class="mstat-val" style="color:var(--green)">${q.totalLeads}</div>
-        <div class="mstat-sub">total form submissions</div>
-      </div>
-      <div class="mstat">
-        <div class="mstat-label">Appt Book Rate</div>
-        <div class="mstat-val" style="color:var(--green)">${q.bookRate}%</div>
-        <div class="mstat-sub">${q.apptsBooked} of ${q.totalLeads} booked</div>
-      </div>
-      <div class="mstat">
-        <div class="mstat-label">Avg Motivation</div>
-        <div class="mstat-val" style="color:var(--amber)">${q.avgMotivation}<span style="font-size:13px;font-weight:400">/10</span></div>
-        <div class="mstat-sub">${q.highMotPct}% scored 8–10</div>
-      </div>
-      <div class="mstat">
-        <div class="mstat-label">Motivated Leads</div>
-        <div class="mstat-val" style="color:var(--green)">${q.motivated}</div>
-        <div class="mstat-sub">${q.unmotivated} unmotivated</div>
-      </div>
-    </div>
-    <div class="marie-detail">
-      <div class="mdetail">
-        <div class="mdetail-title">Top Objections</div>
-        ${q.objections.map(o=>`<div class="obj-row">
-          <span class="obj-label">${o.label}</span>
-          <div class="obj-bar-wrap"><div class="obj-bar" style="width:${Math.round(o.n/maxObj*100)}%"></div></div>
-          <span class="obj-count">${o.n}</span>
-        </div>`).join('')}
-      </div>
-      <div class="mdetail">
-        <div class="mdetail-title">Personality Types</div>
-        <div class="pill-row">
-          ${q.personalities.map(p=>`<span class="spill" style="color:var(--${p.cls==='g'?'green':p.cls==='a'?'amber':p.cls==='r'?'red':'blue'});border-color:var(--${p.cls==='g'?'gbd':p.cls==='a'?'abd':p.cls==='r'?'rbd':'bbd'});background:var(--${p.cls==='g'?'gdim':p.cls==='a'?'adim':p.cls==='r'?'rdim':'bdim'})">${p.label} ${p.n}</span>`).join('')}
-        </div>
-        <div style="margin-top:16px">
-          <div class="mdetail-title">Monthly Appts Booked</div>
-          <div class="month-badges">
-            ${q.monthlyBooked.map(m=>`<span class="mbadge">${m.m}: ${m.n}</span>`).join('')}
-          </div>
-        </div>
-      </div>
-      <div class="mdetail">
-        <div class="mdetail-title">Outcome Breakdown</div>
-        <div class="obj-row">
-          <span class="obj-label" style="color:var(--green)">Appt Booked</span>
-          <div class="obj-bar-wrap"><div class="obj-bar" style="width:94%;background:var(--green)"></div></div>
-          <span class="obj-count" style="color:var(--green)">145</span>
-        </div>
-        <div class="obj-row">
-          <span class="obj-label" style="color:var(--amber)">Follow Up Needed</span>
-          <div class="obj-bar-wrap"><div class="obj-bar" style="width:4%;background:var(--amber)"></div></div>
-          <span class="obj-count" style="color:var(--amber)">6</span>
-        </div>
-        <div class="obj-row">
-          <span class="obj-label" style="color:var(--red)">Not Interested</span>
-          <div class="obj-bar-wrap"><div class="obj-bar" style="width:2%;background:var(--red)"></div></div>
-          <span class="obj-count" style="color:var(--red)">3</span>
-        </div>
-        <div style="margin-top:12px;font-family:var(--mono);font-size:9px;color:var(--muted2);line-height:1.7">
-          Pricing is the dominant objection (73%). 94% book rate is exceptional — industry avg 40–60%.
-        </div>
+      <div style="text-align:right">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">Tasks Done</div>
+        <div style="font-size:18px;font-weight:700;color:var(--mu2)">${d.tasksCompleted.toLocaleString()}</div>
       </div>
     </div>
   </div>`;
 }
 
-// ─── Charts ────────────────────────────────────────────────────────────────
-const CHART_OPTS = {
-  responsive:true, maintainAspectRatio:false,
-  plugins:{legend:{display:false}},
-  scales:{
-    x:{ticks:{color:'#5a5d6e',font:{family:'DM Mono',size:9},maxTicksLimit:8},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'#232530'}},
-    y:{ticks:{color:'#5a5d6e',font:{family:'DM Mono',size:9}},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'#232530'}},
-  }
-};
-
-function drawCharts(monthly){
-  const labels = monthly.map(p=>p.period);
-  const mk = (id,type,datasets)=>{
-    const el = document.getElementById(id);
-    if(!el) return;
-    if(charts[id]) charts[id].destroy();
-    charts[id] = new Chart(el,{type,data:{labels,datasets},options:CHART_OPTS});
-  };
-  mk('ch-calls','bar',[
-    {label:'Calls Made',data:monthly.map(p=>p.dials||0),backgroundColor:'rgba(91,156,246,0.75)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
-    {label:'Connected', data:monthly.map(p=>p.connectedCalls||0),backgroundColor:'rgba(61,255,160,0.75)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
-  ]);
-  mk('ch-talk','bar',[
-    {label:'Talk hrs',data:monthly.map(p=>p.talkTimeHrs||0),backgroundColor:'rgba(255,179,64,0.75)',borderRadius:3,barPercentage:.75},
-  ]);
-  mk('ch-appts','bar',[
-    {label:'Set',     data:monthly.map(p=>p.apptsSet||0),backgroundColor:'rgba(91,156,246,0.6)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
-    {label:'Attended',data:monthly.map(p=>p.apptsAttended||0),backgroundColor:'rgba(61,255,160,0.75)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
-  ]);
+// ── Charts HTML ──────────────────────────────────────────────────────────────
+function chartsHtml(){
+  return `<div class="cg">
+    <div class="cc full">
+      <div class="ct">Calls Made &amp; Connected — monthly</div>
+      <div class="cleg"><span><s style="background:#85B7EB"></s>Calls Made</span><span><s style="background:#3dffa0"></s>Connected</span></div>
+      <div class="cw t"><canvas id="ch1" role="img" aria-label="calls chart">Call data</canvas></div>
+    </div>
+    <div class="cc">
+      <div class="ct">Talk time (hrs)</div>
+      <div class="cleg"><span><s style="background:#ffb340"></s>Hours</span></div>
+      <div class="cw"><canvas id="ch2" role="img" aria-label="talk time">Talk time</canvas></div>
+    </div>
+    <div class="cc">
+      <div class="ct">Appts Set vs Attended</div>
+      <div class="cleg"><span><s style="background:#85B7EB"></s>Set</span><span><s style="background:#3dffa0"></s>Attended</span></div>
+      <div class="cw"><canvas id="ch3" role="img" aria-label="appointments">Appointments</canvas></div>
+    </div>
+  </div>`;
 }
 
-// Load leaderboard separately
-async function loadLeaderboard(){
-  const data = await fetch('/api/kpi/all').then(r=>r.json());
-  const container = document.getElementById('leaderboard-container');
-  if(!container||!data.ok) return;
-  const rows = (data.agents||[]).map(a=>{
-    const cr = a.dials?Math.round(a.connectedCalls/a.dials*100):0;
-    const sr = a.appts?Math.round(a.apptsAttended/a.appts*100):0;
+// ── Leaderboard ──────────────────────────────────────────────────────────────
+function leaderboardHtml(){
+  const rows = leaderboard.map(a=>{
+    const cr=a.dials?Math.round(a.connectedCalls/a.dials*100):0;
+    const sr=a.apptsSet?Math.round(a.apptsAttended/a.apptsSet*100):0;
+    const dCls=thrClass(a.name,'dials',a.dials);
+    const tCls=thrClass(a.name,'talkTimeHrs',a.talkTimeHrs);
+    const dStyle=dCls?`color:var(--${dCls==='gn'?'gn':dCls==='am'?'am':'rd'});font-weight:600`:'';
+    const tStyle=tCls?`color:var(--${tCls==='gn'?'gn':tCls==='am'?'am':'rd'});font-weight:600`:'';
+    const crStyle=`color:var(--${crCls(cr)==='gn'?'gn':crCls(cr)==='am'?'am':'rd'});font-family:var(--mono);font-size:10px`;
     return `<tr>
       <td>${a.name}</td>
-      ${(()=>{
-        const dc = metricColor(a.name,'dials',a.dials||0);
-        const tcol = dc?`color:var(--${dc==='green'?'green':dc==='amber'?'amber':'red'});font-weight:600`:'';
-        return `<td style="${tcol}">${(a.dials||0).toLocaleString()}${dc?` <span style="font-family:var(--mono);font-size:8px;opacity:.7">${dc==='green'?'✓':dc==='amber'?'⚠':'↓'}</span>`:''}</td>`;
-      })()}
-      <td>${(a.connectedCalls||0).toLocaleString()}</td>
-      <td><span class="${crPillClass(cr)}" style="font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;border:1px solid;display:inline-block">${a.dials?cr+'%':'—'}</span></td>
-      ${(()=>{
-        const tc = metricColor(a.name,'talkHrs',a.talkTimeHrs||0);
-        const tcol = tc?`color:var(--${tc==='green'?'green':tc==='amber'?'amber':'red'});font-weight:600`:'';
-        return `<td style="${tcol}">${a.talkTimeHrs||0}${tc?` <span style="font-family:var(--mono);font-size:8px;opacity:.7">${tc==='green'?'✓':tc==='amber'?'⚠':'↓'}</span>`:''}</td>`;
-      })()}
-      <td>${a.appts||0}</td>
-      <td>${a.apptsAttended||0}</td>
-      <td style="color:${showClass(sr)};font-family:var(--mono);font-size:10px">${a.appts?sr+'%':'—'}</td>
-      <td>${(a.texts||0).toLocaleString()}</td>
-      <td>${(a.tasksCompleted||0).toLocaleString()}</td>
+      <td style="${dStyle}">${a.dials.toLocaleString()}${dCls?` <span style="font-size:8px;opacity:.8">${dCls==='gn'?'✓':dCls==='am'?'⚠':'↓'}</span>`:''}</td>
+      <td>${a.connectedCalls.toLocaleString()}</td>
+      <td style="${crStyle}">${a.dials?cr+'%':'—'}</td>
+      <td style="${tStyle}">${a.talkTimeHrs}${tCls?` <span style="font-size:8px;opacity:.8">${tCls==='gn'?'✓':tCls==='am'?'⚠':'↓'}</span>`:''}</td>
+      <td>${a.apptsSet}</td>
+      <td>${a.apptsAttended}</td>
+      <td style="color:${showColor(sr)};font-family:var(--mono);font-size:10px">${a.apptsSet?sr+'%':'—'}</td>
+      <td>${a.texts.toLocaleString()}</td>
+      <td>${a.tasksCompleted.toLocaleString()}</td>
     </tr>`;
   }).join('');
-  container.innerHTML = `<div class="table-wrap">
-    <div class="table-header">Agent leaderboard — Jan–Apr 2026 (YTD)</div>
+  return `<div class="tw">
+    <div class="th">Agent leaderboard — Jan–Apr 2026 YTD</div>
     <div style="overflow-x:auto"><table>
       <thead><tr>
         <th>Agent</th><th>Calls Made</th><th>Connected</th><th>Connect %</th>
@@ -644,49 +481,114 @@ async function loadLeaderboard(){
   </div>`;
 }
 
-// ─── Explorer ──────────────────────────────────────────────────────────────
+// ── Marie qual ───────────────────────────────────────────────────────────────
+function marieQualHtml(){
+  const q=MARIE_QUAL, mx=q.objections[0].n;
+  const cmap={gn:'var(--gn)',am:'var(--am)',rd:'var(--rd)',bl:'var(--bl)'};
+  const bdmap={gn:'var(--gbd)',am:'var(--abd)',rd:'var(--rbd)',bl:'var(--bbd)'};
+  const bgmap={gn:'var(--gdim)',am:'var(--adim)',rd:'var(--rdim)',bl:'var(--bdim)'};
+  return `<div class="mp">
+    <div class="mph">
+      <div class="av" style="width:32px;height:32px;font-size:10px;border-color:var(--gn);color:var(--gn)">MA</div>
+      <div><div class="mpt">Marie Emara — Lead Qualification</div><div class="mps">Mar–May 2026 · ${q.total} leads · Google Sheet</div></div>
+    </div>
+    <div class="mstats">
+      <div class="ms"><div class="msl">Leads Qualified</div><div class="msv" style="color:var(--gn)">${q.total}</div><div class="msb">total submissions</div></div>
+      <div class="ms"><div class="msl">Appt Book Rate</div><div class="msv" style="color:var(--gn)">${q.rate}%</div><div class="msb">${q.booked} of ${q.total} booked</div></div>
+      <div class="ms"><div class="msl">Avg Motivation</div><div class="msv" style="color:var(--am)">${q.avgMot}<span style="font-size:12px;font-weight:400">/10</span></div><div class="msb">${q.highMotPct}% scored 8–10</div></div>
+      <div class="ms"><div class="msl">Motivated Leads</div><div class="msv" style="color:var(--gn)">${q.motivated}</div><div class="msb">${q.unmotivated} unmotivated</div></div>
+    </div>
+    <div class="mrows">
+      <div class="mr">
+        <div class="mrt">Top Objections</div>
+        ${q.objections.map(o=>`<div class="ob"><span class="obl">${o.l}</span><div class="obw"><div class="obb" style="width:${Math.round(o.n/mx*100)}%"></div></div><span class="obc">${o.n}</span></div>`).join('')}
+      </div>
+      <div class="mr">
+        <div class="mrt">Personality Types</div>
+        <div>${q.personalities.map(p=>`<span class="pill" style="color:${cmap[p.c]};border-color:${bdmap[p.c]};background:${bgmap[p.c]}">${p.l} ${p.n}</span>`).join('')}</div>
+        <div style="margin-top:14px"><div class="mrt">Monthly Appts Booked</div>
+          <div style="display:flex;gap:6px;margin-top:6px">${q.monthly.map(m=>`<span class="pill" style="color:var(--gn);border-color:var(--gbd);background:var(--gdim)">${m.m}: ${m.n}</span>`).join('')}</div>
+        </div>
+      </div>
+      <div class="mr">
+        <div class="mrt">Outcome Breakdown</div>
+        <div class="ob"><span class="obl" style="color:var(--gn)">Appt Booked</span><div class="obw"><div class="obb" style="width:94%;background:var(--gn)"></div></div><span class="obc" style="color:var(--gn)">145</span></div>
+        <div class="ob"><span class="obl" style="color:var(--am)">Follow Up</span><div class="obw"><div class="obb" style="width:4%;background:var(--am)"></div></div><span class="obc" style="color:var(--am)">6</span></div>
+        <div class="ob"><span class="obl" style="color:var(--rd)">Not Interested</span><div class="obw"><div class="obb" style="width:2%;background:var(--rd)"></div></div><span class="obc" style="color:var(--rd)">3</span></div>
+        <div style="margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--mu2);line-height:1.7">Pricing = 73% of objections.<br>94% book rate — industry avg 40–60%.</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Charts ────────────────────────────────────────────────────────────────────
+const COPTS={responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false}},
+  scales:{x:{ticks:{color:'#5a5d6e',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'#232530'}},
+          y:{ticks:{color:'#5a5d6e',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'#232530'}}}};
+
+function drawCharts(data){
+  const L=data.map(p=>p.period);
+  function mk(id,datasets){
+    const el=document.getElementById(id); if(!el) return;
+    if(charts[id]) charts[id].destroy();
+    charts[id]=new Chart(el,{type:'bar',data:{labels:L,datasets},options:COPTS});
+  }
+  mk('ch1',[
+    {label:'Calls Made',data:data.map(p=>p.dials||0),backgroundColor:'rgba(91,156,246,.75)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
+    {label:'Connected', data:data.map(p=>p.connectedCalls||0),backgroundColor:'rgba(61,255,160,.75)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
+  ]);
+  mk('ch2',[{label:'Talk hrs',data:data.map(p=>p.talkTimeHrs||0),backgroundColor:'rgba(255,179,64,.75)',borderRadius:3,barPercentage:.75}]);
+  mk('ch3',[
+    {label:'Set',      data:data.map(p=>p.apptsSet||0),backgroundColor:'rgba(91,156,246,.6)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
+    {label:'Attended', data:data.map(p=>p.apptsAttended||0),backgroundColor:'rgba(61,255,160,.75)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
+  ]);
+}
+
+// ── Explorer ──────────────────────────────────────────────────────────────────
 function buildExplorer(){
   const metrics=[
     {m:'Calls Made',s:'available',src:'Calls Export: "Calls Made"'},
     {m:'Connected Calls',s:'available',src:'Calls Export: "Connected"'},
-    {m:'Talk Time (hrs)',s:'available',src:'Calls Export: "Total Talk Time" parsed to decimal hours'},
-    {m:'Connect Rate %',s:'calculated',src:'Connected ÷ Calls Made × 100  (🟢≥50%  🟡40–49%  🔴<40%)'},
+    {m:'Talk Time (hrs)',s:'available',src:'Calls Export: "Total Talk Time" → decimal hours'},
+    {m:'Connect Rate %',s:'calculated',src:'Connected ÷ Calls Made × 100 · ≥50% green · 40-49% yellow · <40% red'},
     {m:'Appointments Set',s:'available',src:'Agent Activity: "Appointments Set"'},
-    {m:'Appointments Attended',s:'available',src:'Agent Activity: "Appointments" (FUB counts attended)'},
-    {m:'Show Rate %',s:'calculated',src:'Attended ÷ Set × 100  (target 70–80%)'},
+    {m:'Appointments Attended',s:'available',src:'Agent Activity: "Appointments"'},
+    {m:'Show Rate %',s:'calculated',src:'Attended ÷ Set × 100 · target 70–80%'},
     {m:'Texts Sent',s:'available',src:'Agent Activity: "Texts"'},
     {m:'New Leads',s:'available',src:'Agent Activity: "New Leads"'},
     {m:'Tasks Completed',s:'available',src:'Agent Activity: "Tasks Completed"'},
     {m:'Speed to First Call',s:'available',src:'Agent Activity: "Avg Speed to First Call (Minutes)"'},
-    {m:'Speed to First Text',s:'available',src:'Agent Activity: "Avg Speed to First Text (Minutes)"'},
     {m:'% Leads Responding',s:'available',src:'Agent Activity: "% of Leads Responding"'},
     {m:'Conversion Rate',s:'available',src:'Agent Activity: "Conversion Rate"'},
-    {m:'Lead Qualification (Marie)',s:'available',src:'Google Sheet form responses — appended to Marie\'s agent view'},
-    {m:'Offers / Verbals / Contracts',s:'unavailable',src:'Not in standard FUB exports — export Deals report separately'},
-    {m:'Motivation Tier Tagging',s:'unavailable',src:'Custom field — not in standard FUB exports'},
+    {m:'Lead Qual (Marie)',s:'available',src:'Google Sheet form — appended to Marie\'s view'},
+    {m:'Micheal: Calls target',s:'calculated',src:'Green ≥100 · Yellow 70–99 · Red <70 dials per period'},
+    {m:'Micheal: Talk target',s:'calculated',src:'Green ≥3 hrs · Yellow 2.5–3 hrs · Red <2.5 hrs'},
+    {m:'Marie: Calls target',s:'calculated',src:'Green ≥100 · Yellow 70–99 · Red <70 dials per period'},
+    {m:'Marie: Talk target',s:'calculated',src:'Green ≥2.5 hrs · Yellow 2–2.5 hrs · Red <2 hrs'},
+    {m:'Offers/Verbals/Contracts',s:'unavailable',src:'Not in standard FUB exports — export Deals report separately'},
   ];
-  const C={available:{pill:'var(--green)',bg:'var(--gdim)',bd:'var(--gbd)'},calculated:{pill:'var(--blue)',bg:'var(--bdim)',bd:'var(--bbd)'},unavailable:{pill:'var(--red)',bg:'var(--rdim)',bd:'var(--rbd)'}};
-  document.getElementById('exp-content').innerHTML = metrics.map(m=>`
-    <div class="exp-row">
-      <div style="font-size:12px;color:var(--text)">${m.m}</div>
-      <div><span class="exp-pill" style="color:${C[m.s].pill};background:${C[m.s].bg};border-color:${C[m.s].bd}">${m.s}</span></div>
-      <div style="font-family:var(--mono);font-size:9px;color:var(--muted2)">${m.src}</div>
+  const C={available:{c:'var(--gn)',bg:'var(--gdim)',bd:'var(--gbd)'},
+           calculated:{c:'var(--bl)',bg:'var(--bdim)',bd:'var(--bbd)'},
+           unavailable:{c:'var(--rd)',bg:'var(--rdim)',bd:'var(--rbd)'}};
+  document.getElementById('exrows').innerHTML=metrics.map(m=>`
+    <div class="exr">
+      <div style="font-size:12px;color:var(--tx)">${m.m}</div>
+      <span class="exp" style="color:${C[m.s].c};background:${C[m.s].bg};border-color:${C[m.s].bd}">${m.s}</span>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">${m.src}</div>
     </div>`).join('');
 }
 
-// ─── Nav ──────────────────────────────────────────────────────────────────
-function switchTab(id, btn){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
-  btn.classList.add('active');
-  if(id==='explorer') buildExplorer();
+// ── Nav ───────────────────────────────────────────────────────────────────────
+function goPg(id,btn){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('pg-'+id).classList.add('on');
+  btn.classList.add('on');
+  if(id==='exp') buildExplorer();
 }
 
-// ─── Boot ─────────────────────────────────────────────────────────────────
-boot().then(()=>{
-  if(selectedAgent==='all') loadLeaderboard();
-});
+boot();
 </script>
 </body>
 </html>
