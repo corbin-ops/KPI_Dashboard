@@ -10,10 +10,8 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#08090a;--bg2:#0f1012;--bg3:#16181c;--bg4:#1e2026;
-  --br:#232530;--br2:#2e313d;
-  --tx:#f0f0f4;--mu:#5a5d6e;--mu2:#8b8fa8;
-  --gn:#3dffa0;--gn2:#00d97e;
-  --gdim:rgba(61,255,160,.08);--gbd:rgba(61,255,160,.28);
+  --br:#232530;--br2:#2e313d;--tx:#f0f0f4;--mu:#5a5d6e;--mu2:#8b8fa8;
+  --gn:#3dffa0;--gn2:#00d97e;--gdim:rgba(61,255,160,.08);--gbd:rgba(61,255,160,.28);
   --am:#ffb340;--adim:rgba(255,179,64,.08);--abd:rgba(255,179,64,.28);
   --rd:#ff5f5f;--rdim:rgba(255,95,95,.08);--rbd:rgba(255,95,95,.28);
   --bl:#5b9cf6;--bdim:rgba(91,156,246,.08);--bbd:rgba(91,156,246,.28);
@@ -21,24 +19,23 @@
 }
 html,body{height:100%;background:var(--bg);color:var(--tx);font-family:var(--ui);font-size:13px;overflow:hidden}
 .shell{display:grid;grid-template-rows:48px 1fr;height:100vh}
-nav{display:flex;align-items:center;background:var(--bg2);border-bottom:1px solid var(--br);padding:0 20px;gap:0}
+nav{display:flex;align-items:center;background:var(--bg2);border-bottom:1px solid var(--br);padding:0 20px}
 .brand{font-family:var(--mono);font-size:11px;color:var(--gn);letter-spacing:.15em;margin-right:26px}
 .tabs{display:flex;height:100%}
-.tab{padding:0 16px;font-family:var(--mono);font-size:11px;color:var(--mu2);border:none;background:transparent;cursor:pointer;height:100%;border-bottom:2px solid transparent}
+.tab{padding:0 16px;font-family:var(--mono);font-size:11px;color:var(--mu2);border:none;background:transparent;cursor:pointer;height:100%;border-bottom:2px solid transparent;transition:color .15s}
 .tab.on{color:var(--gn);border-bottom-color:var(--gn)}
-.nr{margin-left:auto;display:flex;align-items:center;gap:7px}
+.nr{margin-left:auto;display:flex;align-items:center;gap:8px}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--mu)}
 .dot.ok{background:var(--gn);box-shadow:0 0 5px var(--gn2)}
+.dot.err{background:var(--rd)}
 .nl{font-family:var(--mono);font-size:10px;color:var(--mu2)}
 .pages{overflow:hidden;height:100%}
 .pg{display:none;height:100%;overflow-y:auto}
 .pg.on{display:block}
-
-/* ── DASHBOARD LAYOUT ─────────────────── */
 .dlayout{display:grid;grid-template-columns:210px 1fr;height:100%}
 .sidebar{background:var(--bg2);border-right:1px solid var(--br);padding:16px 13px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
 .sbl{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--mu);text-transform:uppercase;margin-bottom:6px}
-.src-badge{font-family:var(--mono);font-size:10px;color:var(--gn);background:var(--gdim);border:1px solid var(--gbd);border-radius:4px;padding:6px 9px}
+.src-badge{font-family:var(--mono);font-size:10px;color:var(--gn);background:var(--gdim);border:1px solid var(--gbd);border-radius:4px;padding:6px 9px;line-height:1.6}
 select{width:100%;background:var(--bg3);border:1px solid var(--br2);border-radius:4px;color:var(--tx);font-family:var(--mono);font-size:10px;padding:7px 9px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235a5d6e'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;cursor:pointer}
 .aglist{display:flex;flex-direction:column;gap:2px}
 .abtn{display:flex;align-items:center;gap:8px;padding:7px;border-radius:5px;cursor:pointer;border:1px solid transparent;background:transparent;width:100%;text-align:left}
@@ -48,30 +45,29 @@ select{width:100%;background:var(--bg3);border:1px solid var(--br2);border-radiu
 .av{width:28px;height:28px;border-radius:50%;background:var(--bg4);border:1px solid var(--br2);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:var(--mu2);flex-shrink:0}
 .aname{font-size:12px;color:var(--tx)}
 .arole{font-family:var(--mono);font-size:9px;color:var(--mu2)}
-
-/* ── MAIN AREA ─────────────────────────── */
 .main{overflow-y:auto;padding:18px}
-
-/* KPI cards */
+/* Loading */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:80%;gap:12px}
+.spin{width:28px;height:28px;border:2px solid var(--br2);border-top-color:var(--gn);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-family:var(--mono);font-size:11px;color:var(--mu2)}
+.loading-sub{font-family:var(--mono);font-size:10px;color:var(--mu)}
+/* KPI */
 .kg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
 .kc{background:var(--bg2);border:1px solid var(--br);border-radius:7px;padding:12px 14px;position:relative;overflow:hidden}
 .kc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-.kc.gn::before{background:var(--gn)}.kc.bl::before{background:var(--bl)}
-.kc.am::before{background:var(--am)}.kc.rd::before{background:var(--rd)}
+.kc.gn::before{background:var(--gn)}.kc.bl::before{background:var(--bl)}.kc.am::before{background:var(--am)}.kc.rd::before{background:var(--rd)}
 .kl{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--mu2);text-transform:uppercase;margin-bottom:5px}
 .kv{font-size:20px;font-weight:700;color:var(--tx);line-height:1}
 .ks{font-family:var(--mono);font-size:9px;color:var(--mu);margin-top:3px}
 .ktag{position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:8px;padding:2px 5px;border-radius:2px;border:1px solid}
 .ktag.live{background:var(--gdim);color:var(--gn);border-color:var(--gbd)}
 .ktag.calc{background:var(--adim);color:var(--am);border-color:var(--abd)}
-
-/* highlight pill on threshold cards */
-.thr{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid;margin-top:4px;display:inline-block}
+.thr{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px;border:1px solid;margin-top:5px;display:inline-block}
 .thr.gn{background:var(--gdim);color:var(--gn);border-color:var(--gbd)}
 .thr.am{background:var(--adim);color:var(--am);border-color:var(--abd)}
 .thr.rd{background:var(--rdim);color:var(--rd);border-color:var(--rbd)}
-
-/* charts */
+/* Charts */
 .cg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
 .cc{background:var(--bg2);border:1px solid var(--br);border-radius:7px;padding:14px}
 .cc.full{grid-column:1/-1}
@@ -80,8 +76,7 @@ select{width:100%;background:var(--bg3);border:1px solid var(--br2);border-radiu
 .cleg span{display:flex;align-items:center;gap:4px}
 .cleg s{width:8px;height:8px;border-radius:2px;display:inline-block;text-decoration:none}
 .cw{height:160px;position:relative}.cw.t{height:185px}
-
-/* table */
+/* Table */
 .tw{background:var(--bg2);border:1px solid var(--br);border-radius:7px;overflow:hidden;margin-bottom:16px}
 .th{padding:10px 14px;border-bottom:1px solid var(--br);font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--mu2);text-transform:uppercase}
 table{width:100%;border-collapse:collapse}
@@ -91,18 +86,10 @@ td{padding:8px 10px;font-size:11px;border-bottom:1px solid var(--br);text-align:
 td:first-child{text-align:left;font-size:12px;font-weight:600}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--bg3)}
-
-/* agent detail */
-.agent-detail{margin-bottom:16px}
-.detail-header{background:var(--bg3);border:1px solid var(--br);border-radius:7px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
-.detail-name{font-size:18px;font-weight:700}
-.detail-role{font-family:var(--mono);font-size:10px;color:var(--mu2)}
-.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
-.detail-card{background:var(--bg2);border:1px solid var(--br);border-radius:7px;padding:12px 14px}
-.dc-label{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--mu2);text-transform:uppercase;margin-bottom:4px}
-.dc-val{font-size:22px;font-weight:700;line-height:1}
-.dc-sub{font-family:var(--mono);font-size:9px;color:var(--mu);margin-top:2px}
-
+/* Agent header */
+.dh{background:var(--bg3);border:1px solid var(--br);border-radius:7px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.dn{font-size:18px;font-weight:700}
+.dr{font-family:var(--mono);font-size:10px;color:var(--mu2)}
 /* Marie qual */
 .mp{background:var(--bg2);border:1px solid var(--br);border-radius:7px;overflow:hidden;margin-bottom:16px}
 .mph{padding:11px 15px;background:var(--bg3);border-bottom:1px solid var(--br);display:flex;align-items:center;gap:10px}
@@ -117,20 +104,15 @@ tr:hover td{background:var(--bg3)}
 .mr{padding:12px 14px;border-right:1px solid var(--br)}.mr:last-child{border-right:none}
 .mrt{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--mu2);text-transform:uppercase;margin-bottom:8px}
 .ob{display:flex;align-items:center;gap:6px;margin-bottom:5px}
-.obl{font-size:10px;color:var(--mu2);min-width:115px}
+.obl{font-size:10px;color:var(--mu2);min-width:118px}
 .obw{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
 .obb{height:100%;border-radius:2px;background:var(--am)}
 .obc{font-family:var(--mono);font-size:9px;color:var(--mu2);min-width:22px;text-align:right}
 .pill{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;border:1px solid;display:inline-block;margin:2px}
-
-/* error/empty */
-.err{display:flex;flex-direction:column;align-items:center;justify-content:center;height:80%;gap:10px;color:var(--mu2);font-family:var(--mono);font-size:12px}
-
-/* explorer */
+/* Explorer */
 .exwrap{padding:22px;max-width:900px}
 .exr{display:grid;grid-template-columns:180px 82px 1fr;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--br);background:var(--bg2)}
 .exp{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;border:1px solid;text-align:center}
-
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--br2);border-radius:2px}
 </style>
 </head>
@@ -144,27 +126,24 @@ tr:hover td{background:var(--bg3)}
   </div>
   <div class="nr">
     <div class="dot" id="sdot"></div>
-    <div class="nl" id="slbl">connecting...</div>
+    <div class="nl" id="slbl">loading...</div>
   </div>
 </nav>
 <div class="pages">
 
-<!-- DASHBOARD -->
 <div class="pg on" id="pg-dash">
 <div class="dlayout" style="height:100%">
 <aside class="sidebar">
-  <div><div class="sbl">Data source</div>
-    <div class="src-badge" id="src-badge">CSV exports</div></div>
-  <div><div class="sbl">Month</div>
-    <select id="mf" onchange="render()">
-      <option value="all">All months (Jan–Apr)</option>
-      <option value="Jan">January 2026</option>
-      <option value="Feb">February 2026</option>
-      <option value="Mar">March 2026</option>
-      <option value="Apr">April 2026</option>
-    </select>
+  <div>
+    <div class="sbl">Data source</div>
+    <div class="src-badge" id="src-badge">Google Sheet<br>loading...</div>
   </div>
-  <div><div class="sbl">Agent</div>
+  <div>
+    <div class="sbl">Month</div>
+    <select id="mf" onchange="render()"><option value="all">Loading...</option></select>
+  </div>
+  <div>
+    <div class="sbl">Agent</div>
     <div class="aglist" id="aglist">
       <button class="abtn on" onclick="pick('all',this)">
         <div class="av">ALL</div>
@@ -174,24 +153,19 @@ tr:hover td{background:var(--bg3)}
   </div>
 </aside>
 <div class="main" id="main">
-  <div class="err">
-    <div>Loading data...</div>
-    <div style="font-size:10px;color:var(--mu)">Connecting to server</div>
+  <div class="loading">
+    <div class="spin"></div>
+    <div class="loading-txt">Loading from Google Sheet...</div>
+    <div class="loading-sub">Reading mothersheet Raw_Data</div>
   </div>
 </div>
 </div>
 </div>
 
-<!-- EXPLORER -->
 <div class="pg" id="pg-exp">
 <div class="exwrap">
   <div style="font-size:18px;font-weight:700;margin-bottom:4px">Metric Explorer</div>
-  <div style="font-family:var(--mono);font-size:10px;color:var(--mu2);margin-bottom:18px">CSV data source · Jan–Apr 2026</div>
-  <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;font-family:var(--mono);font-size:9px;color:var(--mu2)">
-    <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--gn);display:inline-block"></span>available</span>
-    <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--bl);display:inline-block"></span>calculated</span>
-    <span style="display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:2px;background:var(--rd);display:inline-block"></span>not in exports</span>
-  </div>
+  <div style="font-family:var(--mono);font-size:10px;color:var(--mu2);margin-bottom:16px">Live from Google Sheet mothersheet · auto-updates when sheet is updated</div>
   <div id="exrows"></div>
 </div>
 </div>
@@ -200,135 +174,274 @@ tr:hover td{background:var(--bg3)}
 </div>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
-let teamData=[], allAgents=[], agentKPI={}, leaderboard=[];
-let selAgent='all', charts={};
+// ── Data sources ─────────────────────────────────────────────────────────────
+// Mothersheet Raw_Data → all agents, all months
+// Adding a new month: just paste rows into Raw_Data with new month name → dashboard auto-picks it up on next load
+const SHEET_ID   = '1Bo7LGhuNEu_h26C0j0IfSY0Ocx0nR8TS38MnykxkDvg';
+const RAW_GID    = '1222639376';   // Raw_Data tab GID
 
-const ROLES={
+// Marie's appointment booking sheet — separate source, shown only on Marie's view
+const MARIE_SHEET_ID = '14GT7CfPfsdkL_bgDbXi2hWg4yJQ9izAPwvFW2KNNT-o';
+const MARIE_GID      = '0';  // Form Responses 1
+
+function csvUrl(sheetId, gid) {
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+}
+
+// ── Config ───────────────────────────────────────────────────────────────────
+const MONTH_ORDER = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SHORT = Object.fromEntries(MONTH_ORDER.map(m=>[m,m.slice(0,3)]));
+const ROLES = {
   'Corbin Garcia':'Acquisitions','Marie Emara':'New Lead Intake',
   'Hugo Galicia':'Realtor/Title','Emma Lopez':'Follow-Up Specialist',
   'Chenge Makoni':'SMS/Lead Push','Micheal Suarez':'Acquisitions Mgr',
   'Tapiwa Pasipamire':'Admin','Yusuf Ashraf':'Admin',
 };
-const INI={
+const INI = {
   'Corbin Garcia':'CO','Marie Emara':'MA','Hugo Galicia':'HU',
   'Emma Lopez':'EM','Chenge Makoni':'CT','Micheal Suarez':'MS',
   'Tapiwa Pasipamire':'TP','Yusuf Ashraf':'YA',
 };
-
-// Per-agent thresholds: {talkTimeHrs:{green,yellow}, dials:{green,yellow}}
-const THR={
-  'Marie Emara':    {talkTimeHrs:{green:2.5,yellow:2.0},  dials:{green:100,yellow:70}},
-  'Micheal Suarez': {talkTimeHrs:{green:3.0,yellow:2.5},  dials:{green:100,yellow:70}},
+const THR = {
+  'Marie Emara':    {talkHrs:{green:2.5,yellow:2.0}, dials:{green:100,yellow:70}},
+  'Micheal Suarez': {talkHrs:{green:3.0,yellow:2.5}, dials:{green:100,yellow:70}},
 };
 
-function thrClass(name,metric,val){
-  const t=THR[name]?.[metric]; if(!t) return null;
-  return val>=t.green?'gn':val>=t.yellow?'am':'rd';
+// ── State ────────────────────────────────────────────────────────────────────
+let ALL_RECORDS = [];   // [{month,monthFull,name,callsMade,...}]
+let ALL_MONTHS  = [];   // [{full,short}] ordered
+let ALL_AGENTS  = [];   // string[]
+let MARIE_QUAL  = null; // parsed from Marie sheet
+let selAgent = 'all';
+let charts = {};
+
+// ── CSV parser ───────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  if(lines.length < 2) return [];
+  function splitLine(line) {
+    const cols=[]; let cur='', inQ=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){inQ=!inQ;continue;}
+      if(ch===','&&!inQ){cols.push(cur.trim());cur='';continue;}
+      cur+=ch;
+    }
+    cols.push(cur.trim()); return cols;
+  }
+  const headers = splitLine(lines[0]);
+  return lines.slice(1).filter(l=>l.trim()).map(l=>{
+    const vals=splitLine(l);
+    const row={};
+    headers.forEach((h,i)=>{row[h.trim()]=vals[i]??'';});
+    return row;
+  }).filter(r=>Object.values(r).some(v=>v));
 }
-function thrLabel(cls){ return cls==='gn'?'✓ on target':cls==='am'?'⚠ near target':'↓ below target'; }
-function crCls(pct){ return pct>=50?'gn':pct>=40?'am':'rd'; }
-function showColor(sr){ return sr>=70?'var(--gn)':sr>=50?'var(--am)':'var(--rd)'; }
 
-const MARIE_QUAL={
-  total:154,booked:145,rate:94,avgMot:7.1,highMotPct:49,motivated:106,unmotivated:18,
-  objections:[{l:'Pricing',n:112},{l:'Comparing Options',n:18},{l:'Needs Spouse Approval',n:13},{l:'Not Interested',n:5},{l:'Already With Agent',n:3}],
-  personalities:[{l:'Laid-back',n:108,c:'bl'},{l:'Blue-collar',n:21,c:'am'},{l:'Emotional',n:15,c:'rd'},{l:'Analytical',n:8,c:'gn'}],
-  monthly:[{m:'Mar',n:47},{m:'Apr',n:63},{m:'May',n:35}],
-};
+function safeN(v){ const n=parseFloat(String(v).replace(/[^\d.\-]/g,'')); return isNaN(n)?0:n; }
 
-// ── Boot ──────────────────────────────────────────────────────────────────
+// ── Load mothersheet Raw_Data ─────────────────────────────────────────────────
+async function loadMothersheet() {
+  const url = csvUrl(SHEET_ID, RAW_GID);
+  const resp = await fetch(url);
+  if(!resp.ok) throw new Error(`Sheet fetch failed: ${resp.status}`);
+  const text = await resp.text();
+  const rows = parseCSV(text);
+
+  ALL_RECORDS = rows
+    .filter(r => r['Month'] && r['Name'])
+    .map(r => ({
+      monthFull: r['Month'].trim(),
+      month:     (SHORT[r['Month'].trim()] || r['Month'].trim().slice(0,3)),
+      name:      r['Name'].trim(),
+      callsMade: safeN(r['Calls Made']),
+      connected:  safeN(r['Connected']),
+      talkHrs:    Math.round(safeN(r['Talk Hours'])*100)/100,
+      apptsSet:   safeN(r['Appts Set']),
+      apptsAtt:   safeN(r['Appts Attended']),
+      texts:      safeN(r['Texts']),
+      newLeads:   safeN(r['New Leads']),
+      tasksCompleted: safeN(r['Tasks Completed']),
+      emails:     safeN(r['Emails']),
+      dealsClosed: safeN(r['Deals Closed']),
+    }));
+
+  // Build ordered month list from data
+  const seenMonths = new Set();
+  ALL_MONTHS = [];
+  for(const m of MONTH_ORDER){
+    if(ALL_RECORDS.some(r=>r.monthFull===m) && !seenMonths.has(m)){
+      ALL_MONTHS.push({full:m, short:SHORT[m]||m.slice(0,3)});
+      seenMonths.add(m);
+    }
+  }
+
+  ALL_AGENTS = [...new Set(ALL_RECORDS.map(r=>r.name))].sort();
+  return ALL_RECORDS.length;
+}
+
+// ── Load Marie appointment sheet ─────────────────────────────────────────────
+async function loadMarieSheet() {
+  const url = csvUrl(MARIE_SHEET_ID, MARIE_GID);
+  const resp = await fetch(url);
+  if(!resp.ok) throw new Error(`Marie sheet fetch failed: ${resp.status}`);
+  const text = await resp.text();
+  const rows = parseCSV(text);
+
+  const total = rows.length;
+  const outcomes = {}, objections = {}, personalities = {};
+  const motLevels = [];
+  const monthlyBooked = {}, monthlyTotal = {};
+  const weeklyBooked = {};
+
+  for(const r of rows){
+    const outcome = r['Call Outcome']?.trim()||'';
+    outcomes[outcome] = (outcomes[outcome]||0)+1;
+    const obj = r['Objections']?.trim()||'';
+    if(obj) objections[obj] = (objections[obj]||0)+1;
+    const pers = r['Personality']?.trim()||'';
+    if(pers) personalities[pers] = (personalities[pers]||0)+1;
+    const mot = parseFloat(r['Motivation Level']);
+    if(!isNaN(mot)) motLevels.push(mot);
+
+    // Parse date for monthly/weekly
+    const ts = r['Timestamp']||'';
+    const dm = ts.match(/^(\d+)\/(\d+)\/(\d+)/);
+    if(dm){
+      const d = new Date(parseInt(dm[3]),parseInt(dm[1])-1,parseInt(dm[2]));
+      const moStr = d.toLocaleString('en-US',{month:'short'});
+      monthlyTotal[moStr] = (monthlyTotal[moStr]||0)+1;
+      if(outcome==='Appointment Booked') monthlyBooked[moStr]=(monthlyBooked[moStr]||0)+1;
+      // ISO week
+      const jan1 = new Date(d.getFullYear(),0,1);
+      const week = Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
+      const wk = `W${String(week).padStart(2,'0')}`;
+      if(outcome==='Appointment Booked') weeklyBooked[wk]=(weeklyBooked[wk]||0)+1;
+    }
+  }
+
+  const avgMot = motLevels.length ? Math.round(motLevels.reduce((a,b)=>a+b,0)/motLevels.length*10)/10 : 0;
+  const highMot = motLevels.filter(m=>m>=8).length;
+  const booked = outcomes['Appointment Booked']||0;
+
+  const topObj = Object.entries(objections).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([l,n])=>({l,n}));
+  const topPers = Object.entries(personalities).sort((a,b)=>b[1]-a[1]).map(([l,n])=>({l,n}));
+
+  const moOrder = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthlyArr = moOrder.filter(m=>monthlyTotal[m]).map(m=>({m,n:monthlyBooked[m]||0,total:monthlyTotal[m]}));
+
+  // Last 10 weeks
+  const weeklyArr = Object.entries(weeklyBooked).sort((a,b)=>a[0].localeCompare(b[0])).slice(-10).map(([w,n])=>({w:w.replace('W',''),n}));
+
+  MARIE_QUAL = {
+    total, booked,
+    followUp: outcomes['Follow Up Needed']||0,
+    notInterested: outcomes['Not Interested']||0,
+    bookRate: total ? Math.round(booked/total*100) : 0,
+    avgMot, highMot,
+    highMotPct: motLevels.length ? Math.round(highMot/motLevels.length*100) : 0,
+    objections: topObj,
+    personalities: topPers,
+    monthlyBooked: monthlyArr,
+    weeklyTrend: weeklyArr,
+  };
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
 async function boot(){
-  // 1. Health
-  let health;
+  const dot = document.getElementById('sdot');
+  const lbl = document.getElementById('slbl');
+
   try {
-    health = await fetch('/api/health',{signal:AbortSignal.timeout(8000)}).then(r=>r.json());
+    lbl.textContent = 'loading sheet...';
+    const [count] = await Promise.all([
+      loadMothersheet(),
+      loadMarieSheet().catch(e=>{ console.warn('Marie sheet error:', e.message); })
+    ]);
+
+    dot.classList.add('ok');
+    lbl.textContent = `sheet · ${ALL_MONTHS.map(m=>m.short).join('·')}`;
+    document.getElementById('src-badge').innerHTML =
+      `Google Sheet<br>${ALL_MONTHS.map(m=>m.short).join(' · ')} 2026`;
+
+    buildMonthFilter();
+    buildAgentList();
+    render();
   } catch(e) {
-    showErr('Cannot reach server: '+e.message+'. Check Render logs.');
-    return;
+    dot.classList.add('err');
+    lbl.textContent = 'error loading sheet';
+    document.getElementById('main').innerHTML = `
+      <div class="loading">
+        <div style="color:var(--rd);font-family:var(--mono);font-size:12px">⚠ ${e.message}</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--mu);margin-top:8px">
+          Make sure the Google Sheet is shared as "Anyone with link can view"
+        </div>
+      </div>`;
   }
-  if(!health.ok){
-    showErr('Server reached but no CSV data found. Check /api/debug in browser. Records: '+health.recordCount);
-    return;
-  }
-  document.getElementById('sdot').classList.add('ok');
-  document.getElementById('slbl').textContent = `csv · ${(health.months||[]).join(', ')}`;
-  document.getElementById('src-badge').textContent = `CSV · ${(health.months||[]).join(' · ')}`;
-
-  // 2. Users
-  const ud = await fetch('/api/users').then(r=>r.json());
-  allAgents = (ud.users||[]).filter(u=>ROLES[u.name]||u.name);
-  buildAgentList();
-
-  // 3. Team KPI
-  const td = await fetch('/api/kpi').then(r=>r.json());
-  teamData = td.monthly || [];
-
-  // 4. Leaderboard
-  const ld = await fetch('/api/kpi/all').then(r=>r.json());
-  leaderboard = ld.agents || [];
-
-  render();
 }
 
-function showErr(msg){
-  document.getElementById('sdot').style.background='var(--rd)';
-  document.getElementById('slbl').textContent='error';
-  document.getElementById('main').innerHTML=`<div class="err"><div style="color:var(--rd)">⚠ ${msg}</div><div style="font-size:10px;margin-top:8px">Open <span style="color:var(--gn)">your-render-url/api/debug</span> in browser to diagnose.</div></div>`;
+// ── Build UI ──────────────────────────────────────────────────────────────────
+function buildMonthFilter(){
+  const sel = document.getElementById('mf');
+  const allLabel = `All months (${ALL_MONTHS.map(m=>m.short).join('–')})`;
+  sel.innerHTML = `<option value="all">${allLabel}</option>` +
+    ALL_MONTHS.map(m=>`<option value="${m.short}">${m.full} 2026</option>`).join('');
 }
 
 function buildAgentList(){
   const list = document.getElementById('aglist');
-  const allBtn=`<button class="abtn on" onclick="pick('all',this)"><div class="av">ALL</div><div><div class="aname">All agents</div><div class="arole">team view</div></div></button>`;
-  const btns = allAgents.map(u=>`<button class="abtn" onclick="pick('${u.id}',this)">
-    <div class="av">${INI[u.name]||u.name.slice(0,2).toUpperCase()}</div>
-    <div><div class="aname">${u.name}</div><div class="arole">${ROLES[u.name]||''}</div></div>
-  </button>`).join('');
-  list.innerHTML = allBtn+btns;
+  const allBtn = `<button class="abtn on" onclick="pick('all',this)">
+    <div class="av">ALL</div>
+    <div><div class="aname">All agents</div><div class="arole">team view</div></div>
+  </button>`;
+  const btns = ALL_AGENTS.filter(n=>ROLES[n]).map(name=>`
+    <button class="abtn" onclick="pick('${name.replace(/'/g,"\\'")}',this)">
+      <div class="av">${INI[name]||name.slice(0,2).toUpperCase()}</div>
+      <div><div class="aname">${name}</div><div class="arole">${ROLES[name]||''}</div></div>
+    </button>`).join('');
+  list.innerHTML = allBtn + btns;
 }
 
-async function pick(id,btn){
-  selAgent=id;
+function pick(name, btn){
+  selAgent = name;
   document.querySelectorAll('.abtn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
-  if(id!=='all' && !agentKPI[id]){
-    document.getElementById('main').innerHTML='<div class="err"><div>Loading agent data...</div></div>';
-    const d = await fetch(`/api/kpi?userId=${encodeURIComponent(id)}`).then(r=>r.json());
-    agentKPI[id] = d.monthly||[];
-  }
   render();
 }
 
-function render(){
-  const mf = document.getElementById('mf').value;
-  Object.values(charts).forEach(c=>c.destroy()); charts={};
-  const main = document.getElementById('main');
-
-  if(selAgent==='all'){
-    let data = teamData;
-    if(mf!=='all') data = data.filter(p=>p.period===mf);
-    const t = totals(data);
-    main.innerHTML = kpiCards(t,null)+chartsHtml()+leaderboardHtml();
-    drawCharts(data);
-  } else {
-    const agent = allAgents.find(u=>u.id===selAgent);
-    const name = agent?.name||selAgent;
-    let data = agentKPI[selAgent]||[];
-    if(mf!=='all') data = data.filter(p=>p.period===mf);
-    const t = totals(data);
-    const isMarie = name==='Marie Emara';
-    main.innerHTML = agentDetailHtml(name,t)+kpiCards(t,name)+chartsHtml()+(isMarie?marieQualHtml():'');
-    drawCharts(data);
+// ── Aggregate ─────────────────────────────────────────────────────────────────
+function buildSeries(recs){
+  const map = {};
+  for(const r of recs){
+    const k = r.month;
+    if(!map[k]) map[k]={p:k,pFull:r.monthFull,cm:0,co:0,th:0,as:0,aa:0,tx:0,nl:0,tc:0,dc:0};
+    const b=map[k];
+    b.cm+=r.callsMade; b.co+=r.connected; b.th+=r.talkHrs;
+    b.as+=r.apptsSet;  b.aa+=r.apptsAtt;
+    b.tx+=r.texts;     b.nl+=r.newLeads; b.tc+=r.tasksCompleted; b.dc+=r.dealsClosed;
   }
+  return ALL_MONTHS
+    .map(m=>map[m.short])
+    .filter(Boolean)
+    .map(p=>({
+      period: p.p,
+      dials: p.cm, connectedCalls: p.co,
+      talkTimeHrs: Math.round(p.th*10)/10,
+      talkTimeSec: Math.round(p.th*3600),
+      apptsSet: p.as, apptsAttended: p.aa,
+      showRate: p.as?Math.round(p.aa/p.as*100):0,
+      dialToConnect: p.cm?Math.round(p.co/p.cm*100):0,
+      texts: p.tx, newLeads: p.nl, tasksCompleted: p.tc, dealsClosed: p.dc,
+    }));
 }
 
-function totals(data){
-  const sum=f=>data.reduce((s,p)=>s+(p[f]||0),0);
-  const sec=data.reduce((s,p)=>s+(p.talkTimeSec||0),0);
+function totals(series){
+  const sum=f=>series.reduce((s,p)=>s+(p[f]||0),0);
+  const tSec=sum('talkTimeSec');
   const d=sum('dials'),c=sum('connectedCalls'),as=sum('apptsSet'),aa=sum('apptsAttended');
   return{
     dials:d,connectedCalls:c,
-    talkTimeHrs:sec?Math.round(sec/3600*10)/10:Math.round(sum('talkTimeHrs')*10)/10,
+    talkTimeHrs:tSec?Math.round(tSec/3600*10)/10:Math.round(sum('talkTimeHrs')*10)/10,
     apptsSet:as,apptsAttended:aa,
     cr:d?Math.round(c/d*100):0,
     showRate:as?Math.round(aa/as*100):0,
@@ -337,193 +450,191 @@ function totals(data){
   };
 }
 
-// ── KPI Cards ──────────────────────────────────────────────────────────────
-function kpiCards(d,name){
-  const dialCls = thrClass(name,'dials',d.dials)||'bl';
-  const talkCls = thrClass(name,'talkTimeHrs',d.talkTimeHrs)||'am';
-  const crC = crCls(d.cr);
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function thrClass(name,metric,val){
+  const t=THR[name]?.[metric]; if(!t) return null;
+  return val>=t.green?'gn':val>=t.yellow?'am':'rd';
+}
+function thrLabel(c){return c==='gn'?'✓ on target':c==='am'?'⚠ near target':'↓ below target';}
+function crCls(p){return p>=50?'gn':p>=40?'am':'rd';}
+function showColor(sr){return sr>=70?'var(--gn)':sr>=50?'var(--am)':'var(--rd)';}
 
-  function thrBadge(cls,val,metric){
-    if(!cls||!THR[name]?.[metric]) return '';
-    return `<div class="thr ${cls}">${thrLabel(cls)}</div>`;
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(){
+  const mf = document.getElementById('mf').value;
+  Object.values(charts).forEach(c=>c.destroy()); charts={};
+  const main = document.getElementById('main');
+
+  if(selAgent==='all'){
+    const data = mf==='all' ? buildSeries(ALL_RECORDS)
+      : buildSeries(ALL_RECORDS.filter(r=>r.month===mf));
+    const t = totals(data);
+    const period = ALL_MONTHS.map(m=>m.short).join('–');
+    main.innerHTML = kpiCards(t,null)+chartsHtml()+leaderboardHtml(period);
+    drawCharts(data);
+  } else {
+    const agRecs = ALL_RECORDS.filter(r=>r.name===selAgent);
+    const data = mf==='all' ? buildSeries(agRecs)
+      : buildSeries(agRecs.filter(r=>r.month===mf));
+    const t = totals(data);
+    const isMarie = selAgent==='Marie Emara';
+    main.innerHTML = agentHeader(selAgent,t)+kpiCards(t,selAgent)+chartsHtml()+(isMarie&&MARIE_QUAL?marieQualHtml():'');
+    drawCharts(data);
   }
+}
 
+// ── KPI Cards ─────────────────────────────────────────────────────────────────
+function kpiCards(d,name){
+  const dCls=thrClass(name,'dials',d.dials)||'bl';
+  const tCls=thrClass(name,'talkHrs',d.talkTimeHrs)||'am';
+  const crC=crCls(d.cr);
+  const dNote=THR[name]?.dials?`target ≥${THR[name].dials.green}`:'outbound calls';
+  const tNote=THR[name]?.talkHrs?`target ≥${THR[name].talkHrs.green}h`:'total talk time';
+  const dBadge=THR[name]?.dials?`<div class="thr ${dCls}">${thrLabel(dCls)}</div>`:'';
+  const tBadge=THR[name]?.talkHrs?`<div class="thr ${tCls}">${thrLabel(tCls)}</div>`:'';
   return `<div class="kg">
-    <div class="kc ${dialCls}">
-      <div class="kl">Calls Made</div>
-      <div class="kv">${d.dials.toLocaleString()}</div>
-      <div class="ks">${name&&THR[name]?.dials?`target ≥${THR[name].dials.green}`:'outbound calls'}</div>
-      ${thrBadge(dialCls,d.dials,'dials')}
-      <span class="ktag live">live</span>
-    </div>
-    <div class="kc gn">
-      <div class="kl">Connected Calls</div>
-      <div class="kv">${d.connectedCalls.toLocaleString()}</div>
-      <div class="ks">duration &gt; 0s</div>
-      <span class="ktag live">live</span>
-    </div>
-    <div class="kc ${talkCls}">
-      <div class="kl">Talk Time</div>
-      <div class="kv">${d.talkTimeHrs}<span style="font-size:13px;font-weight:400"> hrs</span></div>
-      <div class="ks">${name&&THR[name]?.talkTimeHrs?`target ≥${THR[name].talkTimeHrs.green}h`:'total talk time'}</div>
-      ${thrBadge(talkCls,d.talkTimeHrs,'talkTimeHrs')}
-      <span class="ktag live">live</span>
-    </div>
-    <div class="kc ${crC}">
-      <div class="kl">Connect Rate</div>
-      <div class="kv">${d.cr}<span style="font-size:13px;font-weight:400">%</span></div>
-      <div class="ks" style="color:${crC==='gn'?'var(--gn)':crC==='am'?'var(--am)':'var(--rd)'}">${crC==='gn'?'✓ on target':crC==='am'?'⚠ watch':'↓ below target'} · target ≥50%</div>
-      <span class="ktag calc">calculated</span>
-    </div>
-    <div class="kc bl">
-      <div class="kl">Appts Set</div>
-      <div class="kv">${d.apptsSet.toLocaleString()}</div>
-      <div class="ks">appointments booked</div>
-      <span class="ktag live">live</span>
-    </div>
-    <div class="kc gn">
-      <div class="kl">Appts Attended</div>
-      <div class="kv">${d.apptsAttended.toLocaleString()}</div>
-      <div class="ks">show rate: ${d.showRate}%</div>
-      <span class="ktag live">live</span>
-    </div>
-    <div class="kc am">
-      <div class="kl">Show Rate</div>
-      <div class="kv" style="color:${showColor(d.showRate)}">${d.showRate}<span style="font-size:13px;font-weight:400">%</span></div>
-      <div class="ks">target 70–80%</div>
-      <span class="ktag calc">calculated</span>
-    </div>
-    <div class="kc bl">
-      <div class="kl">Texts Sent</div>
-      <div class="kv">${d.texts.toLocaleString()}</div>
-      <div class="ks">outbound texts</div>
-      <span class="ktag live">live</span>
-    </div>
+    <div class="kc ${dCls}"><div class="kl">Calls Made</div><div class="kv">${d.dials.toLocaleString()}</div><div class="ks">${dNote}</div>${dBadge}<span class="ktag live">live</span></div>
+    <div class="kc gn"><div class="kl">Connected Calls</div><div class="kv">${d.connectedCalls.toLocaleString()}</div><div class="ks">duration &gt; 0s</div><span class="ktag live">live</span></div>
+    <div class="kc ${tCls}"><div class="kl">Talk Time</div><div class="kv">${d.talkTimeHrs}<span style="font-size:13px;font-weight:400"> hrs</span></div><div class="ks">${tNote}</div>${tBadge}<span class="ktag live">live</span></div>
+    <div class="kc ${crC}"><div class="kl">Connect Rate</div><div class="kv">${d.cr}<span style="font-size:13px;font-weight:400">%</span></div><div class="ks" style="color:var(--${crC})">${crC==='gn'?'✓ on target':crC==='am'?'⚠ watch':'↓ below target'} · ≥50%</div><span class="ktag calc">calculated</span></div>
+    <div class="kc bl"><div class="kl">Appts Set</div><div class="kv">${d.apptsSet.toLocaleString()}</div><div class="ks">appointments booked</div><span class="ktag live">live</span></div>
+    <div class="kc gn"><div class="kl">Appts Attended</div><div class="kv">${d.apptsAttended.toLocaleString()}</div><div class="ks">show rate: ${d.showRate}%</div><span class="ktag live">live</span></div>
+    <div class="kc am"><div class="kl">Show Rate</div><div class="kv" style="color:${showColor(d.showRate)}">${d.showRate}<span style="font-size:13px;font-weight:400">%</span></div><div class="ks">target 70–80%</div><span class="ktag calc">calculated</span></div>
+    <div class="kc bl"><div class="kl">Texts Sent</div><div class="kv">${d.texts.toLocaleString()}</div><div class="ks">outbound texts</div><span class="ktag live">live</span></div>
   </div>`;
 }
 
-// ── Agent detail header ──────────────────────────────────────────────────────
-function agentDetailHtml(name,d){
+function agentHeader(name,d){
   const ini=INI[name]||name.slice(0,2).toUpperCase();
-  const role=ROLES[name]||'';
-  return `<div class="detail-header">
+  const months=ALL_MONTHS.map(m=>m.short).join('–');
+  return `<div class="dh">
     <div class="av" style="width:38px;height:38px;font-size:11px;border-color:var(--gn);color:var(--gn)">${ini}</div>
-    <div>
-      <div class="detail-name">${name}</div>
-      <div class="detail-role">${role} · Jan–Apr 2026 YTD</div>
-    </div>
-    <div style="margin-left:auto;display:flex;gap:10px">
-      <div style="text-align:right">
-        <div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">New Leads</div>
-        <div style="font-size:18px;font-weight:700;color:var(--bl)">${d.newLeads.toLocaleString()}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">Tasks Done</div>
-        <div style="font-size:18px;font-weight:700;color:var(--mu2)">${d.tasksCompleted.toLocaleString()}</div>
-      </div>
+    <div><div class="dn">${name}</div><div class="dr">${ROLES[name]||''} · ${months} 2026</div></div>
+    <div style="margin-left:auto;display:flex;gap:14px">
+      <div style="text-align:right"><div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">New Leads</div><div style="font-size:18px;font-weight:700;color:var(--bl)">${d.newLeads.toLocaleString()}</div></div>
+      <div style="text-align:right"><div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">Tasks Done</div><div style="font-size:18px;font-weight:700;color:var(--mu2)">${d.tasksCompleted.toLocaleString()}</div></div>
     </div>
   </div>`;
 }
 
-// ── Charts HTML ──────────────────────────────────────────────────────────────
 function chartsHtml(){
   return `<div class="cg">
-    <div class="cc full">
-      <div class="ct">Calls Made &amp; Connected — monthly</div>
+    <div class="cc full"><div class="ct">Calls Made &amp; Connected — monthly</div>
       <div class="cleg"><span><s style="background:#85B7EB"></s>Calls Made</span><span><s style="background:#3dffa0"></s>Connected</span></div>
-      <div class="cw t"><canvas id="ch1" role="img" aria-label="calls chart">Call data</canvas></div>
-    </div>
-    <div class="cc">
-      <div class="ct">Talk time (hrs)</div>
+      <div class="cw t"><canvas id="ch1" role="img" aria-label="calls chart"></canvas></div></div>
+    <div class="cc"><div class="ct">Talk time (hrs)</div>
       <div class="cleg"><span><s style="background:#ffb340"></s>Hours</span></div>
-      <div class="cw"><canvas id="ch2" role="img" aria-label="talk time">Talk time</canvas></div>
-    </div>
-    <div class="cc">
-      <div class="ct">Appts Set vs Attended</div>
+      <div class="cw"><canvas id="ch2" role="img" aria-label="talk time"></canvas></div></div>
+    <div class="cc"><div class="ct">Appts Set vs Attended</div>
       <div class="cleg"><span><s style="background:#85B7EB"></s>Set</span><span><s style="background:#3dffa0"></s>Attended</span></div>
-      <div class="cw"><canvas id="ch3" role="img" aria-label="appointments">Appointments</canvas></div>
-    </div>
+      <div class="cw"><canvas id="ch3" role="img" aria-label="appointments"></canvas></div></div>
   </div>`;
 }
 
-// ── Leaderboard ──────────────────────────────────────────────────────────────
-function leaderboardHtml(){
-  const rows = leaderboard.map(a=>{
-    const cr=a.dials?Math.round(a.connectedCalls/a.dials*100):0;
-    const sr=a.apptsSet?Math.round(a.apptsAttended/a.apptsSet*100):0;
-    const dCls=thrClass(a.name,'dials',a.dials);
-    const tCls=thrClass(a.name,'talkTimeHrs',a.talkTimeHrs);
-    const dStyle=dCls?`color:var(--${dCls==='gn'?'gn':dCls==='am'?'am':'rd'});font-weight:600`:'';
-    const tStyle=tCls?`color:var(--${tCls==='gn'?'gn':tCls==='am'?'am':'rd'});font-weight:600`:'';
-    const crStyle=`color:var(--${crCls(cr)==='gn'?'gn':crCls(cr)==='am'?'am':'rd'});font-family:var(--mono);font-size:10px`;
+function leaderboardHtml(period){
+  const rows = ALL_AGENTS.map(name=>{
+    const t = totals(buildSeries(ALL_RECORDS.filter(r=>r.name===name)));
+    const dCls=thrClass(name,'dials',t.dials);
+    const tCls=thrClass(name,'talkHrs',t.talkTimeHrs);
+    const dS=dCls?`color:var(--${dCls==='gn'?'gn':dCls==='am'?'am':'rd'});font-weight:600`:'';
+    const tS=tCls?`color:var(--${tCls==='gn'?'gn':tCls==='am'?'am':'rd'});font-weight:600`:'';
+    const crS=`color:var(--${crCls(t.cr)==='gn'?'gn':crCls(t.cr)==='am'?'am':'rd'});font-family:var(--mono);font-size:10px`;
     return `<tr>
-      <td>${a.name}</td>
-      <td style="${dStyle}">${a.dials.toLocaleString()}${dCls?` <span style="font-size:8px;opacity:.8">${dCls==='gn'?'✓':dCls==='am'?'⚠':'↓'}</span>`:''}</td>
-      <td>${a.connectedCalls.toLocaleString()}</td>
-      <td style="${crStyle}">${a.dials?cr+'%':'—'}</td>
-      <td style="${tStyle}">${a.talkTimeHrs}${tCls?` <span style="font-size:8px;opacity:.8">${tCls==='gn'?'✓':tCls==='am'?'⚠':'↓'}</span>`:''}</td>
-      <td>${a.apptsSet}</td>
-      <td>${a.apptsAttended}</td>
-      <td style="color:${showColor(sr)};font-family:var(--mono);font-size:10px">${a.apptsSet?sr+'%':'—'}</td>
-      <td>${a.texts.toLocaleString()}</td>
-      <td>${a.tasksCompleted.toLocaleString()}</td>
+      <td>${name}</td>
+      <td style="${dS}">${t.dials.toLocaleString()}${dCls?` <span style="font-size:8px">${dCls==='gn'?'✓':dCls==='am'?'⚠':'↓'}</span>`:''}</td>
+      <td>${t.connectedCalls.toLocaleString()}</td>
+      <td style="${crS}">${t.dials?t.cr+'%':'—'}</td>
+      <td style="${tS}">${t.talkTimeHrs}${tCls?` <span style="font-size:8px">${tCls==='gn'?'✓':tCls==='am'?'⚠':'↓'}</span>`:''}</td>
+      <td>${t.apptsSet}</td><td>${t.apptsAttended}</td>
+      <td style="color:${showColor(t.showRate)};font-family:var(--mono);font-size:10px">${t.apptsSet?t.showRate+'%':'—'}</td>
+      <td>${t.texts.toLocaleString()}</td><td>${t.tasksCompleted.toLocaleString()}</td>
     </tr>`;
   }).join('');
-  return `<div class="tw">
-    <div class="th">Agent leaderboard — Jan–Apr 2026 YTD</div>
-    <div style="overflow-x:auto"><table>
-      <thead><tr>
-        <th>Agent</th><th>Calls Made</th><th>Connected</th><th>Connect %</th>
-        <th>Talk (hrs)</th><th>Appts Set</th><th>Attended</th><th>Show %</th><th>Texts</th><th>Tasks</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table></div>
-  </div>`;
+  return `<div class="tw"><div class="th">Agent leaderboard — ${period} 2026 YTD</div>
+    <div style="overflow-x:auto"><table><thead><tr>
+      <th>Agent</th><th>Calls Made</th><th>Connected</th><th>Connect %</th>
+      <th>Talk (hrs)</th><th>Appts Set</th><th>Attended</th><th>Show %</th><th>Texts</th><th>Tasks</th>
+    </tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
-// ── Marie qual ───────────────────────────────────────────────────────────────
+// ── Marie qual panel ──────────────────────────────────────────────────────────
 function marieQualHtml(){
-  const q=MARIE_QUAL, mx=q.objections[0].n;
+  const q=MARIE_QUAL;
+  if(!q) return '';
+  const mx=q.objections[0]?.n||1;
   const cmap={gn:'var(--gn)',am:'var(--am)',rd:'var(--rd)',bl:'var(--bl)'};
   const bdmap={gn:'var(--gbd)',am:'var(--abd)',rd:'var(--rbd)',bl:'var(--bbd)'};
   const bgmap={gn:'var(--gdim)',am:'var(--adim)',rd:'var(--rdim)',bl:'var(--bdim)'};
+  const persCols=['bl','am','rd','gn','bl','am'];
+
+  const maxW=Math.max(...(q.weeklyTrend||[]).map(w=>w.n),1);
+  const weekBars=(q.weeklyTrend||[]).map(w=>`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:0">
+      <div style="font-family:var(--mono);font-size:8px;color:var(--gn)">${w.n}</div>
+      <div style="flex:1;width:100%;background:var(--bg4);border-radius:2px;overflow:hidden;min-height:40px;display:flex;flex-direction:column;justify-content:flex-end">
+        <div style="height:${Math.round(w.n/maxW*100)}%;background:rgba(61,255,160,.7);border-radius:2px;min-height:2px"></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:7px;color:var(--mu)">W${w.w}</div>
+    </div>`).join('');
+
+  const monthBars=(q.monthlyBooked||[]).map(m=>{
+    const rate=m.total?Math.round(m.n/m.total*100):0;
+    return `<div style="flex:1;text-align:center">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--gn)">${m.n}/${m.total}</div>
+      <div style="height:44px;background:var(--bg4);border-radius:3px;overflow:hidden;margin:3px 0;display:flex;flex-direction:column;justify-content:flex-end">
+        <div style="height:${rate}%;background:rgba(61,255,160,.7);border-radius:3px;min-height:2px"></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--mu2)">${m.m}</div>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--gn)">${rate}%</div>
+    </div>`;
+  }).join('');
+
   return `<div class="mp">
     <div class="mph">
-      <div class="av" style="width:32px;height:32px;font-size:10px;border-color:var(--gn);color:var(--gn)">MA</div>
-      <div><div class="mpt">Marie Emara — Lead Qualification</div><div class="mps">Mar–May 2026 · ${q.total} leads · Google Sheet</div></div>
+      <div class="av" style="width:34px;height:34px;font-size:11px;border-color:var(--gn);color:var(--gn)">MA</div>
+      <div>
+        <div class="mpt">Marie Emara — Lead Qualification Tracker</div>
+        <div class="mps">Live from Google Sheet · ${q.total} leads total</div>
+      </div>
+      <div style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--mu2);text-align:right">auto-updates<br>on reload</div>
     </div>
     <div class="mstats">
       <div class="ms"><div class="msl">Leads Qualified</div><div class="msv" style="color:var(--gn)">${q.total}</div><div class="msb">total submissions</div></div>
-      <div class="ms"><div class="msl">Appt Book Rate</div><div class="msv" style="color:var(--gn)">${q.rate}%</div><div class="msb">${q.booked} of ${q.total} booked</div></div>
-      <div class="ms"><div class="msl">Avg Motivation</div><div class="msv" style="color:var(--am)">${q.avgMot}<span style="font-size:12px;font-weight:400">/10</span></div><div class="msb">${q.highMotPct}% scored 8–10</div></div>
-      <div class="ms"><div class="msl">Motivated Leads</div><div class="msv" style="color:var(--gn)">${q.motivated}</div><div class="msb">${q.unmotivated} unmotivated</div></div>
+      <div class="ms"><div class="msl">Appt Book Rate</div><div class="msv" style="color:var(--gn)">${q.bookRate}%</div><div class="msb">${q.booked} booked · industry avg 40–60%</div></div>
+      <div class="ms"><div class="msl">Avg Motivation</div><div class="msv" style="color:var(--am)">${q.avgMot}<span style="font-size:12px;font-weight:400">/10</span></div><div class="msb">${q.highMot} leads (${q.highMotPct}%) scored 8–10</div></div>
+      <div class="ms"><div class="msl">Not Booked</div><div class="msv" style="color:var(--am)">${q.followUp+q.notInterested}</div><div class="msb">${q.followUp} follow up · ${q.notInterested} not interested</div></div>
     </div>
     <div class="mrows">
       <div class="mr">
-        <div class="mrt">Top Objections</div>
-        ${q.objections.map(o=>`<div class="ob"><span class="obl">${o.l}</span><div class="obw"><div class="obb" style="width:${Math.round(o.n/mx*100)}%"></div></div><span class="obc">${o.n}</span></div>`).join('')}
+        <div class="mrt">Objections</div>
+        ${q.objections.map(o=>`<div class="ob">
+          <span class="obl">${o.l}</span>
+          <div class="obw"><div class="obb" style="width:${Math.round(o.n/mx*100)}%"></div></div>
+          <span class="obc">${o.n}</span>
+        </div>`).join('')}
       </div>
       <div class="mr">
         <div class="mrt">Personality Types</div>
-        <div>${q.personalities.map(p=>`<span class="pill" style="color:${cmap[p.c]};border-color:${bdmap[p.c]};background:${bgmap[p.c]}">${p.l} ${p.n}</span>`).join('')}</div>
-        <div style="margin-top:14px"><div class="mrt">Monthly Appts Booked</div>
-          <div style="display:flex;gap:6px;margin-top:6px">${q.monthly.map(m=>`<span class="pill" style="color:var(--gn);border-color:var(--gbd);background:var(--gdim)">${m.m}: ${m.n}</span>`).join('')}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:14px">
+          ${q.personalities.map((p,i)=>`<span class="pill" style="color:${cmap[persCols[i%6]]};border-color:${bdmap[persCols[i%6]]};background:${bgmap[persCols[i%6]]}">${p.l} <strong>${p.n}</strong></span>`).join('')}
         </div>
+        <div class="mrt">Monthly: Booked / Total</div>
+        <div style="display:flex;gap:6px;height:80px;align-items:flex-end;margin-top:6px">${monthBars}</div>
       </div>
       <div class="mr">
-        <div class="mrt">Outcome Breakdown</div>
-        <div class="ob"><span class="obl" style="color:var(--gn)">Appt Booked</span><div class="obw"><div class="obb" style="width:94%;background:var(--gn)"></div></div><span class="obc" style="color:var(--gn)">145</span></div>
-        <div class="ob"><span class="obl" style="color:var(--am)">Follow Up</span><div class="obw"><div class="obb" style="width:4%;background:var(--am)"></div></div><span class="obc" style="color:var(--am)">6</span></div>
-        <div class="ob"><span class="obl" style="color:var(--rd)">Not Interested</span><div class="obw"><div class="obb" style="width:2%;background:var(--rd)"></div></div><span class="obc" style="color:var(--rd)">3</span></div>
-        <div style="margin-top:10px;font-family:var(--mono);font-size:9px;color:var(--mu2);line-height:1.7">Pricing = 73% of objections.<br>94% book rate — industry avg 40–60%.</div>
+        <div class="mrt">Outcomes</div>
+        <div class="ob"><span class="obl" style="color:var(--gn)">Appt Booked</span><div class="obw"><div class="obb" style="width:${Math.round(q.booked/q.total*100)}%;background:var(--gn)"></div></div><span class="obc" style="color:var(--gn)">${q.booked}</span></div>
+        <div class="ob"><span class="obl" style="color:var(--am)">Follow Up</span><div class="obw"><div class="obb" style="width:${Math.round(q.followUp/q.total*100)}%;background:var(--am)"></div></div><span class="obc" style="color:var(--am)">${q.followUp}</span></div>
+        <div class="ob"><span class="obl" style="color:var(--rd)">Not Interested</span><div class="obw"><div class="obb" style="width:${Math.round(q.notInterested/q.total*100)}%;background:var(--rd)"></div></div><span class="obc" style="color:var(--rd)">${q.notInterested}</span></div>
+        <div class="mrt" style="margin-top:12px">Weekly Appts (last 10 wks)</div>
+        <div style="display:flex;gap:2px;height:60px;align-items:flex-end;margin-top:6px">${weekBars}</div>
       </div>
     </div>
   </div>`;
 }
 
-// ── Charts ────────────────────────────────────────────────────────────────────
-const COPTS={responsive:true,maintainAspectRatio:false,
-  plugins:{legend:{display:false}},
+// ── Charts ─────────────────────────────────────────────────────────────────────
+const COPTS={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
   scales:{x:{ticks:{color:'#5a5d6e',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'#232530'}},
           y:{ticks:{color:'#5a5d6e',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'},border:{color:'#232530'}}}};
 
@@ -540,46 +651,39 @@ function drawCharts(data){
   ]);
   mk('ch2',[{label:'Talk hrs',data:data.map(p=>p.talkTimeHrs||0),backgroundColor:'rgba(255,179,64,.75)',borderRadius:3,barPercentage:.75}]);
   mk('ch3',[
-    {label:'Set',      data:data.map(p=>p.apptsSet||0),backgroundColor:'rgba(91,156,246,.6)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
-    {label:'Attended', data:data.map(p=>p.apptsAttended||0),backgroundColor:'rgba(61,255,160,.75)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
+    {label:'Set',     data:data.map(p=>p.apptsSet||0),backgroundColor:'rgba(91,156,246,.6)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
+    {label:'Attended',data:data.map(p=>p.apptsAttended||0),backgroundColor:'rgba(61,255,160,.75)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
   ]);
 }
 
-// ── Explorer ──────────────────────────────────────────────────────────────────
+// ── Explorer ───────────────────────────────────────────────────────────────────
 function buildExplorer(){
   const metrics=[
-    {m:'Calls Made',s:'available',src:'Calls Export: "Calls Made"'},
-    {m:'Connected Calls',s:'available',src:'Calls Export: "Connected"'},
-    {m:'Talk Time (hrs)',s:'available',src:'Calls Export: "Total Talk Time" → decimal hours'},
-    {m:'Connect Rate %',s:'calculated',src:'Connected ÷ Calls Made × 100 · ≥50% green · 40-49% yellow · <40% red'},
-    {m:'Appointments Set',s:'available',src:'Agent Activity: "Appointments Set"'},
-    {m:'Appointments Attended',s:'available',src:'Agent Activity: "Appointments"'},
-    {m:'Show Rate %',s:'calculated',src:'Attended ÷ Set × 100 · target 70–80%'},
-    {m:'Texts Sent',s:'available',src:'Agent Activity: "Texts"'},
-    {m:'New Leads',s:'available',src:'Agent Activity: "New Leads"'},
-    {m:'Tasks Completed',s:'available',src:'Agent Activity: "Tasks Completed"'},
-    {m:'Speed to First Call',s:'available',src:'Agent Activity: "Avg Speed to First Call (Minutes)"'},
-    {m:'% Leads Responding',s:'available',src:'Agent Activity: "% of Leads Responding"'},
-    {m:'Conversion Rate',s:'available',src:'Agent Activity: "Conversion Rate"'},
-    {m:'Lead Qual (Marie)',s:'available',src:'Google Sheet form — appended to Marie\'s view'},
-    {m:'Micheal: Calls target',s:'calculated',src:'Green ≥100 · Yellow 70–99 · Red <70 dials per period'},
-    {m:'Micheal: Talk target',s:'calculated',src:'Green ≥3 hrs · Yellow 2.5–3 hrs · Red <2.5 hrs'},
-    {m:'Marie: Calls target',s:'calculated',src:'Green ≥100 · Yellow 70–99 · Red <70 dials per period'},
-    {m:'Marie: Talk target',s:'calculated',src:'Green ≥2.5 hrs · Yellow 2–2.5 hrs · Red <2 hrs'},
-    {m:'Offers/Verbals/Contracts',s:'unavailable',src:'Not in standard FUB exports — export Deals report separately'},
+    {m:'Calls Made',s:'available',src:'Mothersheet Raw_Data col C'},
+    {m:'Connected Calls',s:'available',src:'Mothersheet Raw_Data col D'},
+    {m:'Talk Time (hrs)',s:'available',src:'Mothersheet Raw_Data col H'},
+    {m:'Connect Rate %',s:'calculated',src:'Connected ÷ Calls Made · ≥50% green · 40–49% yellow · <40% red'},
+    {m:'Appts Set',s:'available',src:'Mothersheet Raw_Data col Q'},
+    {m:'Appts Attended',s:'available',src:'Mothersheet Raw_Data col R'},
+    {m:'Show Rate %',s:'calculated',src:'Attended ÷ Set · target 70–80%'},
+    {m:'Texts Sent',s:'available',src:'Mothersheet Raw_Data col N'},
+    {m:'New Leads',s:'available',src:'Mothersheet Raw_Data col I'},
+    {m:'Tasks Completed',s:'available',src:'Mothersheet Raw_Data col P'},
+    {m:'Marie: Lead Qual',s:'available',src:'Live from Marie appointment Google Sheet — auto-updates on reload'},
+    {m:'Micheal/Marie Dials target',s:'calculated',src:'Green ≥100 · Yellow 70–99 · Red <70'},
+    {m:'Micheal Talk target',s:'calculated',src:'Green ≥3 hrs · Yellow 2.5–3 hrs · Red <2.5 hrs'},
+    {m:'Marie Talk target',s:'calculated',src:'Green ≥2.5 hrs · Yellow 2–2.5 hrs · Red <2 hrs'},
+    {m:'Offers/Verbals/Contracts',s:'unavailable',src:'Not in standard FUB exports — Deals report needed'},
   ];
   const C={available:{c:'var(--gn)',bg:'var(--gdim)',bd:'var(--gbd)'},
            calculated:{c:'var(--bl)',bg:'var(--bdim)',bd:'var(--bbd)'},
            unavailable:{c:'var(--rd)',bg:'var(--rdim)',bd:'var(--rbd)'}};
   document.getElementById('exrows').innerHTML=metrics.map(m=>`
-    <div class="exr">
-      <div style="font-size:12px;color:var(--tx)">${m.m}</div>
-      <span class="exp" style="color:${C[m.s].c};background:${C[m.s].bg};border-color:${C[m.s].bd}">${m.s}</span>
-      <div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">${m.src}</div>
-    </div>`).join('');
+    <div class="exr"><div style="font-size:12px;color:var(--tx)">${m.m}</div>
+    <span class="exp" style="color:${C[m.s].c};background:${C[m.s].bg};border-color:${C[m.s].bd}">${m.s}</span>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">${m.src}</div></div>`).join('');
 }
 
-// ── Nav ───────────────────────────────────────────────────────────────────────
 function goPg(id,btn){
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
