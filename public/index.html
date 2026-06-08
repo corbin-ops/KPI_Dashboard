@@ -165,12 +165,12 @@ const ROLES={
   'Corbin Garcia':'Acquisitions','Marie Emara':'New Lead Intake',
   'Hugo Galicia':'Realtor/Title','Emma Lopez':'Follow-Up Specialist',
   'Chenge Makoni':'SMS/Lead Push','Micheal Suarez':'Acquisitions Mgr',
-  'Tapiwa Pasipamire':'Admin','Yusuf Ashraf':'Admin',
+  'Tapiwa Pasipamire':'SC/Admin',
 };
 const INI={
   'Corbin Garcia':'CO','Marie Emara':'MA','Hugo Galicia':'HU',
   'Emma Lopez':'EM','Chenge Makoni':'CT','Micheal Suarez':'MS',
-  'Tapiwa Pasipamire':'TP','Yusuf Ashraf':'YA',
+  'Tapiwa Pasipamire':'TP',
 };
 const THR={
   'Marie Emara':    {talkHrs:{green:2.5,yellow:2.0}, dials:{green:100,yellow:70}},
@@ -179,6 +179,8 @@ const THR={
 
 // ── Marie lead qual — loaded live from /api/data (server fetches Google Sheet)
 let MARIE_QUAL = null; // set in boot() from server response
+
+const SC_DATA={"Chenge Makoni": {"Jan": {"smsSent": 48398, "repliesReceived": 6541, "deliveryRate": "79.80%", "replyRate": "14.81%", "campaigns": 15, "importedLeads": 11304, "medianResponse": null}, "Feb": {"smsSent": 78011, "repliesReceived": 9061, "deliveryRate": "78.46%", "replyRate": "13.48%", "campaigns": 60, "importedLeads": 9726, "medianResponse": null}, "Mar": {"smsSent": 46597, "repliesReceived": 6159, "deliveryRate": "80.43%", "replyRate": "14.52%", "campaigns": 25, "importedLeads": 12815, "medianResponse": null}, "Apr": {"smsSent": 126630, "repliesReceived": 17484, "deliveryRate": "79.21%", "replyRate": "15.19%", "campaigns": 115, "importedLeads": 0, "medianResponse": null}, "May": {"smsSent": 64154, "repliesReceived": 9111, "deliveryRate": "79.59%", "replyRate": "15.26%", "campaigns": 77, "importedLeads": 2518, "medianResponse": null}}, "Tapiwa Pasipamire": {"Jan": {"smsSent": 48398, "repliesReceived": 6541, "deliveryRate": "79.80%", "replyRate": "14.81%", "campaigns": 15, "importedLeads": 11304, "medianResponse": "1h 22m"}, "Feb": {"smsSent": 78011, "repliesReceived": 9061, "deliveryRate": "78.46%", "replyRate": "13.48%", "campaigns": 60, "importedLeads": 9726, "medianResponse": "11m 12s"}, "Mar": {"smsSent": 46597, "repliesReceived": 6159, "deliveryRate": "80.43%", "replyRate": "14.52%", "campaigns": 25, "importedLeads": 12815, "medianResponse": "9m 56s"}, "Apr": {"smsSent": 126630, "repliesReceived": 17484, "deliveryRate": "79.21%", "replyRate": "15.19%", "campaigns": 115, "importedLeads": 0, "medianResponse": "4m 22s"}, "May": {"smsSent": 64154, "repliesReceived": 9111, "deliveryRate": "79.59%", "replyRate": "15.26%", "campaigns": 77, "importedLeads": 2518, "medianResponse": "3m 52s"}}};
 
 // ── State ────────────────────────────────────────────────────────────────────
 let ALL_RECORDS=[], ALL_MONTHS=[], ALL_AGENTS=[];
@@ -212,7 +214,7 @@ async function boot(){
     const list = document.getElementById('aglist');
     const allBtn = `<button class="abtn on" onclick="pick('all',this)"><div class="av">ALL</div><div><div class="aname">All agents</div><div class="arole">team view</div></div></button>`;
     const agBtns = ALL_AGENTS.filter(n=>ROLES[n]).map(name=>`
-      <button class="abtn" onclick="pick(${JSON.stringify(name)},this)">
+      <button class="abtn" onclick="pick('${name.replace(/'/g,"\\'")}',this)">
         <div class="av">${INI[name]||name.slice(0,2).toUpperCase()}</div>
         <div><div class="aname">${name}</div><div class="arole">${ROLES[name]||''}</div></div>
       </button>`).join('');
@@ -280,6 +282,8 @@ function crCls(p){return p>=50?'gn':p>=40?'am':'rd';}
 function showColor(sr){return sr>=70?'var(--gn)':sr>=50?'var(--am)':'var(--rd)';}
 
 // ── Render ────────────────────────────────────────────────────────────────────
+const SC_AGENTS = ['Chenge Makoni','Tapiwa Pasipamire'];
+
 function render(){
   const mf=document.getElementById('mf').value;
   Object.values(charts).forEach(c=>c.destroy()); charts={};
@@ -291,6 +295,9 @@ function render(){
     const t=totals(data);
     main.innerHTML=kpiCards(t,null)+chartsHtml()+leaderboardHtml();
     drawCharts(data);
+  } else if(SC_AGENTS.includes(selAgent)){
+    // SC agents: show SMS/campaign metrics instead of call metrics
+    main.innerHTML=agentHeader(selAgent,{newLeads:0,tasksCompleted:0})+scAgentHtml(selAgent,mf);
   } else {
     const data=buildSeries(ALL_RECORDS.filter(r=>r.name===selAgent&&filter(r)));
     const t=totals(data);
@@ -324,12 +331,22 @@ function kpiCards(d,name){
 function agentHeader(name,d){
   const ini=INI[name]||name.slice(0,2).toUpperCase();
   const period=ALL_MONTHS.map(m=>m.short).join('–');
+  const isSC = SC_AGENTS.includes(name);
+  const scD  = SC_DATA[name]||{};
+  const months = ALL_MONTHS.map(m=>m.short);
+  const totalSMS = isSC ? months.reduce((s,m)=>s+((scD[m]?.smsSent)||0),0) : 0;
+  const totalLeads = isSC ? months.reduce((s,m)=>s+((scD[m]?.importedLeads)||0),0) : 0;
   return `<div class="dh">
     <div class="av" style="width:38px;height:38px;font-size:11px;border-color:var(--gn);color:var(--gn)">${ini}</div>
     <div><div class="dn">${name}</div><div class="dr">${ROLES[name]||''} · ${period} 2026</div></div>
     <div style="margin-left:auto;display:flex;gap:14px">
-      <div style="text-align:right"><div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">New Leads</div><div style="font-size:18px;font-weight:700;color:var(--bl)">${d.newLeads.toLocaleString()}</div></div>
-      <div style="text-align:right"><div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">Tasks Done</div><div style="font-size:18px;font-weight:700;color:var(--mu2)">${d.tasksCompleted.toLocaleString()}</div></div>
+      ${isSC ? `
+      <div style="text-align:right"><div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">SMS Sent</div><div style="font-size:18px;font-weight:700;color:var(--bl)">${totalSMS.toLocaleString()}</div></div>
+      <div style="text-align:right"><div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">FUB Leads</div><div style="font-size:18px;font-weight:700;color:var(--gn)">${totalLeads.toLocaleString()}</div></div>
+      ` : `
+      <div style="text-align:right"><div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">New Leads</div><div style="font-size:18px;font-weight:700;color:var(--bl)">${(d.newLeads||0).toLocaleString()}</div></div>
+      <div style="text-align:right"><div style="font-family:var(--mono);font-size:9px;color:var(--mu2)">Tasks Done</div><div style="font-size:18px;font-weight:700;color:var(--mu2)">${(d.tasksCompleted||0).toLocaleString()}</div></div>
+      `}
     </div>
   </div>`;
 }
@@ -350,7 +367,9 @@ function chartsHtml(){
 
 function leaderboardHtml(){
   const period=ALL_MONTHS.map(m=>m.short).join('–');
-  const rows=ALL_AGENTS.map(name=>{
+  // FUB agents (have call data)
+  const fubAgents = ALL_AGENTS.filter(n=>ROLES[n] && !SC_AGENTS.includes(n) && n!=='Yusuf Ashraf');
+  const fubRows = fubAgents.map(name=>{
     const t=totals(buildSeries(ALL_RECORDS.filter(r=>r.name===name)));
     const dCls=thrClass(name,'dials',t.dials);
     const tCls=thrClass(name,'talkHrs',t.talkTimeHrs);
@@ -368,11 +387,115 @@ function leaderboardHtml(){
       <td>${t.texts.toLocaleString()}</td><td>${t.tasksCompleted.toLocaleString()}</td>
     </tr>`;
   }).join('');
+
+  // SC agents (Chenge & Tapiwa) — show SMS metrics
+  const scRows = SC_AGENTS.filter(n=>ROLES[n]).map(name=>{
+    const months = ALL_MONTHS.map(m=>m.short);
+    const d = SC_DATA[name]||{};
+    const totalSMS   = months.reduce((s,m)=>s+((d[m]?.smsSent)||0),0);
+    const totalReply = months.reduce((s,m)=>s+((d[m]?.repliesReceived)||0),0);
+    const totalLeads = months.reduce((s,m)=>s+((d[m]?.importedLeads)||0),0);
+    const avgDelivery= months.filter(m=>d[m]).length ?
+      (months.filter(m=>d[m]).reduce((s,m)=>s+parseFloat(d[m].deliveryRate||0),0)/months.filter(m=>d[m]).length).toFixed(1)+'%' : '—';
+    return `<tr style="background:var(--bg3)">
+      <td>${name} <span style="font-family:var(--mono);font-size:8px;color:var(--bl)">SC</span></td>
+      <td style="color:var(--bl)">${totalSMS.toLocaleString()}<span style="font-family:var(--mono);font-size:8px;color:var(--mu2)"> sms</span></td>
+      <td style="color:var(--gn)">${totalReply.toLocaleString()}<span style="font-family:var(--mono);font-size:8px;color:var(--mu2)"> replies</span></td>
+      <td style="color:var(--am);font-family:var(--mono);font-size:10px">${avgDelivery}<span style="font-family:var(--mono);font-size:8px;color:var(--mu2)"> delivery</span></td>
+      <td colspan="5" style="color:var(--mu);font-family:var(--mono);font-size:9px;text-align:left">SC/SMS agent · ${totalLeads.toLocaleString()} FUB leads imported</td>
+      <td></td>
+    </tr>`;
+  }).join('');
+
   return `<div class="tw"><div class="th">Agent leaderboard — ${period} 2026 YTD</div>
     <div style="overflow-x:auto"><table><thead><tr>
       <th>Agent</th><th>Calls Made</th><th>Connected</th><th>Connect %</th>
       <th>Talk (hrs)</th><th>Appts Set</th><th>Attended</th><th>Show %</th><th>Texts</th><th>Tasks</th>
-    </tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    </tr></thead><tbody>${fubRows}${scRows}</tbody></table></div></div>`;
+}
+
+
+// ── SC Agent view (Chenge Makoni & Tapiwa Pasipamire) ────────────────────────
+function scAgentHtml(name, mf){
+  const agData = SC_DATA[name];
+  if(!agData) return '<div style="padding:20px;color:var(--mu2);font-family:var(--mono)">No SC data available</div>';
+
+  const months = mf==='all' ? ['Jan','Feb','Mar','Apr','May'] : [mf];
+  const filtered = months.filter(m => agData[m]);
+  const hasTapiwa = name==='Tapiwa Pasipamire';
+
+  // Totals
+  const totalSMS   = filtered.reduce((s,m)=>s+(agData[m].smsSent||0),0);
+  const totalReply = filtered.reduce((s,m)=>s+(agData[m].repliesReceived||0),0);
+  const totalCamp  = filtered.reduce((s,m)=>s+(agData[m].campaigns||0),0);
+  const totalLeads = filtered.reduce((s,m)=>s+(agData[m].importedLeads||0),0);
+  const avgDelivery = filtered.length ? (filtered.reduce((s,m)=>s+parseFloat(agData[m].deliveryRate),0)/filtered.length).toFixed(1)+'%' : '—';
+  const avgReply    = filtered.length ? (filtered.reduce((s,m)=>s+parseFloat(agData[m].replyRate),0)/filtered.length).toFixed(1)+'%' : '—';
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May'];
+  const chartData = MONTHS.filter(m=>agData[m]);
+
+  // Monthly table rows
+  const tableRows = filtered.map(m => {
+    const d = agData[m];
+    const rows = [
+      `<tr><td style="text-align:left;color:var(--tx)">SC SMS Sent</td><td style="color:var(--bl)">${(d.smsSent||0).toLocaleString()}</td></tr>`,
+      `<tr><td style="text-align:left;color:var(--tx)">SC Replies Received</td><td style="color:var(--gn)">${(d.repliesReceived||0).toLocaleString()}</td></tr>`,
+      `<tr><td style="text-align:left;color:var(--tx)">SC Delivery Rate</td><td style="color:var(--am)">${d.deliveryRate}</td></tr>`,
+      `<tr><td style="text-align:left;color:var(--tx)">SC Reply Rate</td><td style="color:var(--gn)">${d.replyRate}</td></tr>`,
+      `<tr><td style="text-align:left;color:var(--tx)">SC Standard Campaigns</td><td style="color:var(--mu2)">${d.campaigns}</td></tr>`,
+      hasTapiwa && d.medianResponse ? `<tr><td style="text-align:left;color:var(--tx)">SC Median Response</td><td style="color:var(--am)">${d.medianResponse}</td></tr>` : '',
+      `<tr><td style="text-align:left;color:var(--tx)">FUB Imported Leads</td><td style="color:var(--gn)">${(d.importedLeads||0).toLocaleString()}</td></tr>`,
+    ].join('');
+    return `<div class="cc" style="min-width:180px">
+      <div class="ct">${m} 2026</div>
+      <table style="width:100%"><tbody>${rows}</tbody></table>
+    </div>`;
+  }).join('');
+
+  // YTD cards
+  const ytdCards = `<div class="kg">
+    <div class="kc bl"><div class="kl">SMS Sent</div><div class="kv">${totalSMS.toLocaleString()}</div><div class="ks">total outbound</div><span class="ktag live">live</span></div>
+    <div class="kc gn"><div class="kl">Replies Received</div><div class="kv">${totalReply.toLocaleString()}</div><div class="ks">inbound responses</div><span class="ktag live">live</span></div>
+    <div class="kc am"><div class="kl">Avg Delivery Rate</div><div class="kv">${avgDelivery}</div><div class="ks">target >75%</div><span class="ktag live">live</span></div>
+    <div class="kc gn"><div class="kl">Avg Reply Rate</div><div class="kv">${avgReply}</div><div class="ks">industry avg 5–15%</div><span class="ktag calc">calculated</span></div>
+    <div class="kc bl"><div class="kl">Campaigns Run</div><div class="kv">${totalCamp}</div><div class="ks">SC standard campaigns</div><span class="ktag live">live</span></div>
+    <div class="kc gn"><div class="kl">FUB Imported Leads</div><div class="kv">${totalLeads.toLocaleString()}</div><div class="ks">leads pushed to FUB</div><span class="ktag live">live</span></div>
+  </div>`;
+
+  // SMS trend chart
+  const chartHtml = `<div class="cg">
+    <div class="cc full"><div class="ct">SMS Sent &amp; Replies — monthly</div>
+      <div class="cleg"><span><s style="background:#85B7EB"></s>SMS Sent</span><span><s style="background:#3dffa0"></s>Replies</span></div>
+      <div class="cw t"><canvas id="ch-sc1"></canvas></div>
+    </div>
+    <div class="cc"><div class="ct">Delivery Rate % — monthly</div>
+      <div class="cleg"><span><s style="background:#ffb340"></s>Delivery %</span></div>
+      <div class="cw"><canvas id="ch-sc2"></canvas></div>
+    </div>
+    <div class="cc"><div class="ct">FUB Imported Leads — monthly</div>
+      <div class="cleg"><span><s style="background:#3dffa0"></s>Leads</span></div>
+      <div class="cw"><canvas id="ch-sc3"></canvas></div>
+    </div>
+  </div>`;
+
+  // Draw SC charts after render
+  setTimeout(()=>{
+    const L = chartData;
+    function mk(id,datasets){
+      const el=document.getElementById(id); if(!el) return;
+      if(charts[id]) charts[id].destroy();
+      charts[id]=new Chart(el,{type:'bar',data:{labels:L,datasets},options:COPTS});
+    }
+    mk('ch-sc1',[
+      {label:'SMS Sent',data:chartData.map(m=>agData[m].smsSent||0),backgroundColor:'rgba(91,156,246,.75)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
+      {label:'Replies', data:chartData.map(m=>agData[m].repliesReceived||0),backgroundColor:'rgba(61,255,160,.75)',borderRadius:3,barPercentage:.7,categoryPercentage:.8},
+    ]);
+    mk('ch-sc2',[{label:'Delivery %',data:chartData.map(m=>parseFloat(agData[m].deliveryRate)||0),backgroundColor:'rgba(255,179,64,.75)',borderRadius:3,barPercentage:.75}]);
+    mk('ch-sc3',[{label:'Leads',data:chartData.map(m=>agData[m].importedLeads||0),backgroundColor:'rgba(61,255,160,.75)',borderRadius:3,barPercentage:.75}]);
+  },50);
+
+  return ytdCards + chartHtml;
 }
 
 // ── Marie qual panel — hardcoded from appointment booking sheet ───────────────
