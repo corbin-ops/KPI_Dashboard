@@ -104,6 +104,23 @@ tr:hover td{background:var(--bg3)}
 .exr{display:grid;grid-template-columns:180px 82px 1fr;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--br);background:var(--bg2)}
 .exp{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:3px;border:1px solid;text-align:center}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--br2);border-radius:2px}
+.ltw{background:var(--bg2);border:1px solid var(--br);border-radius:7px;overflow:hidden;margin-bottom:16px}
+.lth{padding:12px 16px;border-bottom:1px solid var(--br);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ltitle{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--mu2);text-transform:uppercase;flex:1}
+.lsearch{background:var(--bg3);border:1px solid var(--br2);border-radius:4px;color:var(--tx);font-family:var(--mono);font-size:10px;padding:5px 10px;width:180px}
+.lsearch::placeholder{color:var(--mu)}
+.lfilter{background:var(--bg3);border:1px solid var(--br2);border-radius:4px;color:var(--tx);font-family:var(--mono);font-size:10px;padding:5px 10px;max-width:140px}
+.ltable{width:100%;border-collapse:collapse;font-size:10px}
+.ltable th{font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--mu);text-transform:uppercase;padding:7px 10px;text-align:left;border-bottom:1px solid var(--br);background:var(--bg3);white-space:nowrap;cursor:pointer}
+.ltable th:hover{color:var(--tx)}
+.ltable td{padding:7px 10px;border-bottom:1px solid var(--br);vertical-align:top;line-height:1.4}
+.ltable tr:last-child td{border-bottom:none}
+.ltable tr:hover td{background:var(--bg3)}
+.lbadge{font-family:var(--mono);font-size:8px;padding:1px 5px;border-radius:2px;border:1px solid;white-space:nowrap}
+.lbadge.booked{background:var(--gdim);color:var(--gn);border-color:var(--gbd)}
+.lbadge.follow{background:var(--adim);color:var(--am);border-color:var(--abd)}
+.lbadge.notint{background:var(--rdim);color:var(--rd);border-color:var(--rbd)}
+.lcount{font-family:var(--mono);font-size:9px;color:var(--mu2)}
 </style>
 </head>
 <body>
@@ -164,7 +181,7 @@ tr:hover td{background:var(--bg3)}
 const ROLES={
   'Corbin Garcia':'Acquisitions','Marie Emara':'New Lead Intake',
   'Hugo Galicia':'Realtor/Title','Emma Lopez':'Follow-Up Specialist',
-  'Chenge Makoni':'SMS/Lead Push','Micheal Suarez':'Acquisitions Mgr',
+  'Chenge Makoni':'SMS/Lead Push',
   'Tapiwa Pasipamire':'SC/Admin',
 };
 const INI={
@@ -174,7 +191,6 @@ const INI={
 };
 const THR={
   'Marie Emara':    {talkHrs:{green:2.5,yellow:2.0}, dials:{green:100,yellow:70}},
-  'Micheal Suarez': {talkHrs:{green:3.0,yellow:2.5}, dials:{green:100,yellow:70}},
 };
 
 // ── Marie lead qual — loaded live from /api/data (server fetches Google Sheet)
@@ -444,7 +460,7 @@ function scAgentHtml(name, mf){
       `<tr><td style="text-align:left;color:var(--tx)">SC Delivery Rate</td><td style="color:var(--am)">${d.deliveryRate}</td></tr>`,
       `<tr><td style="text-align:left;color:var(--tx)">SC Reply Rate</td><td style="color:var(--gn)">${d.replyRate}</td></tr>`,
       `<tr><td style="text-align:left;color:var(--tx)">SC Standard Campaigns</td><td style="color:var(--mu2)">${d.campaigns}</td></tr>`,
-      hasTapiwa && d.medianResponse ? `<tr><td style="text-align:left;color:var(--tx)">SC Median Response</td><td style="color:var(--am)">${d.medianResponse}</td></tr>` : '',
+      d.medianResponse ? `<tr><td style="text-align:left;color:var(--tx)">SC Median Response</td><td style="color:var(--am)">${d.medianResponse}</td></tr>` : '',
       `<tr><td style="text-align:left;color:var(--tx)">FUB Imported Leads</td><td style="color:var(--gn)">${(d.importedLeads||0).toLocaleString()}</td></tr>`,
     ].join('');
     return `<div class="cc" style="min-width:180px">
@@ -454,6 +470,9 @@ function scAgentHtml(name, mf){
   }).join('');
 
   // YTD cards
+  // Latest median response (most recent month that has it)
+  const latestMedian = filtered.slice().reverse().map(m=>agData[m]?.medianResponse).find(v=>v) || null;
+
   const ytdCards = `<div class="kg">
     <div class="kc bl"><div class="kl">SMS Sent</div><div class="kv">${totalSMS.toLocaleString()}</div><div class="ks">total outbound</div><span class="ktag live">live</span></div>
     <div class="kc gn"><div class="kl">Replies Received</div><div class="kv">${totalReply.toLocaleString()}</div><div class="ks">inbound responses</div><span class="ktag live">live</span></div>
@@ -461,6 +480,9 @@ function scAgentHtml(name, mf){
     <div class="kc gn"><div class="kl">Avg Reply Rate</div><div class="kv">${avgReply}</div><div class="ks">industry avg 5–15%</div><span class="ktag calc">calculated</span></div>
     <div class="kc bl"><div class="kl">Campaigns Run</div><div class="kv">${totalCamp}</div><div class="ks">SC standard campaigns</div><span class="ktag live">live</span></div>
     <div class="kc gn"><div class="kl">FUB Imported Leads</div><div class="kv">${totalLeads.toLocaleString()}</div><div class="ks">leads pushed to FUB</div><span class="ktag live">live</span></div>
+    ${hasTapiwa && latestMedian ? `<div class="kc am" style="grid-column:1/-1"><div class="kl">SC Median Response Rate</div><div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:4px">
+      ${filtered.filter(m=>agData[m]?.medianResponse).map(m=>`<span style="font-family:var(--mono);font-size:11px"><span style="color:var(--mu2)">${m}:</span> <span style="color:var(--am);font-weight:700">${agData[m].medianResponse}</span></span>`).join('')}
+    </div><div class="ks" style="margin-top:4px">response time trending ↓ (faster) is better</div><span class="ktag live">live</span></div>` : ''}
   </div>`;
 
   // SMS trend chart
@@ -501,12 +523,16 @@ function scAgentHtml(name, mf){
 // ── Marie qual panel — hardcoded from appointment booking sheet ───────────────
 function marieQualHtml(){
   const q=MARIE_QUAL;
+  if(!q) return `<div style="background:var(--bg2);border:1px solid var(--br);border-radius:7px;padding:20px;font-family:var(--mono);font-size:11px;color:var(--mu2);margin-bottom:16px">
+    ⚠ Lead qualification data loading... Check /api/health to verify Marie sheet is accessible.
+  </div>`;
+
   const mx=q.objections[0]?.n||1;
   const cmap={gn:'var(--gn)',am:'var(--am)',rd:'var(--rd)',bl:'var(--bl)'};
   const bdmap={gn:'var(--gbd)',am:'var(--abd)',rd:'var(--rbd)',bl:'var(--bbd)'};
   const bgmap={gn:'var(--gdim)',am:'var(--adim)',rd:'var(--rdim)',bl:'var(--bdim)'};
-  const maxW=Math.max(...q.weeklyTrend.map(w=>w.n),1);
-  const weekBars=q.weeklyTrend.map(w=>`
+  const maxW=Math.max(...(q.weeklyTrend||[]).map(w=>w.n),1);
+  const weekBars=(q.weeklyTrend||[]).map(w=>`
     <div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1">
       <div style="font-family:var(--mono);font-size:8px;color:var(--gn)">${w.n}</div>
       <div style="flex:1;width:100%;background:var(--bg4);border-radius:2px;overflow:hidden;min-height:40px;display:flex;flex-direction:column;justify-content:flex-end">
@@ -514,7 +540,7 @@ function marieQualHtml(){
       </div>
       <div style="font-family:var(--mono);font-size:7px;color:var(--mu)">W${w.w}</div>
     </div>`).join('');
-  const monthBars=q.monthlyBooked.map(m=>{
+  const monthBars=(q.monthlyBooked||[]).map(m=>{
     const rate=m.total?Math.round(m.n/m.total*100):0;
     return `<div style="flex:1;text-align:center">
       <div style="font-family:var(--mono);font-size:9px;color:var(--gn)">${m.n}/${m.total}</div>
@@ -529,7 +555,7 @@ function marieQualHtml(){
     <div class="mph">
       <div class="av" style="width:34px;height:34px;font-size:11px;border-color:var(--gn);color:var(--gn)">MA</div>
       <div><div class="mpt">Marie Emara — Lead Qualification Tracker</div>
-      <div class="mps">Live from appointment booking sheet · ${q.total} leads · refreshes every hour</div></div>
+      <div class="mps">Live from appointment booking sheet · ${q.total} leads total · refreshes every hour</div></div>
     </div>
     <div class="mstats">
       <div class="ms"><div class="msl">Leads Qualified</div><div class="msv" style="color:var(--gn)">${q.total}</div><div class="msb">total submissions</div></div>
@@ -544,7 +570,7 @@ function marieQualHtml(){
       <div class="mr">
         <div class="mrt">Personality Types</div>
         <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:14px">
-          ${q.personalities.map(p=>`<span class="pill" style="color:${cmap[p.c]};border-color:${bdmap[p.c]};background:${bgmap[p.c]}">${p.l} <strong>${p.n}</strong></span>`).join('')}
+          ${(q.personalities||[]).map((p,i)=>{const cols=['bl','am','rd','gn'];const c=cols[i%4];return `<span class="pill" style="color:${cmap[c]};border-color:${bdmap[c]};background:${bgmap[c]}">${p.l} <strong>${p.n}</strong></span>`;}).join('')}
         </div>
         <div class="mrt">Monthly: Booked / Total</div>
         <div style="display:flex;gap:6px;height:80px;align-items:flex-end;margin-top:6px">${monthBars}</div>
@@ -558,7 +584,91 @@ function marieQualHtml(){
         <div style="display:flex;gap:2px;height:60px;align-items:flex-end;margin-top:6px">${weekBars}</div>
       </div>
     </div>
+  </div>
+  ${marieLeadTableHtml()}`;
+}
+
+
+
+// ── Marie lead table — parsed from MARIE_QUAL.leads ─────────────────────────
+function marieLeadTableHtml(){
+  if(!MARIE_QUAL || !MARIE_QUAL.leads || !MARIE_QUAL.leads.length) return '';
+
+  const leads = MARIE_QUAL.leads;
+  const tableId = 'marie-lead-table';
+  const searchId = 'marie-search';
+  const outcomeId = 'marie-outcome-filter';
+  const objId = 'marie-obj-filter';
+
+  const outcomes = [...new Set(leads.map(l=>l.outcome).filter(Boolean))].sort();
+  const objections = [...new Set(leads.map(l=>l.objection).filter(Boolean))].sort();
+
+  const outcomeBadge = o => {
+    if(o==='Appointment Booked') return `<span class="lbadge booked">Booked</span>`;
+    if(o==='Follow Up Needed')   return `<span class="lbadge follow">Follow Up</span>`;
+    return `<span class="lbadge notint">Not Interested</span>`;
+  };
+
+  const motColor = m => {
+    const n = parseInt(m);
+    if(isNaN(n)) return 'var(--mu2)';
+    return n>=8?'var(--gn)':n>=5?'var(--am)':'var(--rd)';
+  };
+
+  const rows = leads.map((l,i)=>`<tr class="lrow" data-name="${(l.name||'').toLowerCase()}" data-outcome="${l.outcome||''}" data-objection="${l.objection||''}">
+    <td style="color:var(--mu);font-family:var(--mono);font-size:8px">${l.date||''}</td>
+    <td style="color:var(--tx);font-weight:600;min-width:130px">${l.name||''}</td>
+    <td>${outcomeBadge(l.outcome)}</td>
+    <td style="color:var(--am);font-family:var(--mono);font-size:9px">${l.objection||'—'}</td>
+    <td style="color:${motColor(l.motivation)};font-family:var(--mono);font-size:10px;font-weight:700">${l.motivation||'—'}</td>
+    <td style="color:var(--mu2);font-family:var(--mono);font-size:9px">${l.personality||'—'}</td>
+    <td style="color:var(--bl);font-family:var(--mono);font-size:9px">${l.phone||'—'}</td>
+    <td style="color:var(--mu2);font-size:9px;max-width:180px;white-space:pre-wrap">${l.askingPrice||'—'}</td>
+    <td style="color:var(--mu2);font-size:9px;max-width:200px">${(l.notes||'').slice(0,80)+(l.notes&&l.notes.length>80?'…':'')}</td>
+  </tr>`).join('');
+
+  return `<div class="ltw">
+    <div class="lth">
+      <div class="ltitle">Lead Details — ${leads.length} records</div>
+      <input class="lsearch" id="${searchId}" placeholder="Search lead name..." oninput="filterLeadTable()"/>
+      <select class="lfilter" id="${outcomeId}" onchange="filterLeadTable()">
+        <option value="">All outcomes</option>
+        ${outcomes.map(o=>`<option value="${o}">${o}</option>`).join('')}
+      </select>
+      <select class="lfilter" id="${objId}" onchange="filterLeadTable()">
+        <option value="">All objections</option>
+        ${objections.map(o=>`<option value="${o}">${o}</option>`).join('')}
+      </select>
+      <span class="lcount" id="marie-count">${leads.length} shown</span>
+    </div>
+    <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+      <table class="ltable" id="${tableId}">
+        <thead><tr>
+          <th>Date</th><th>Lead Name</th><th>Outcome</th><th>Objection</th>
+          <th>Mot.</th><th>Personality</th><th>Phone</th><th>Asking Price</th><th>Notes</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
   </div>`;
+}
+
+function filterLeadTable(){
+  const search = document.getElementById('marie-search')?.value.toLowerCase()||'';
+  const outcome = document.getElementById('marie-outcome-filter')?.value||'';
+  const objection = document.getElementById('marie-obj-filter')?.value||'';
+  const rows = document.querySelectorAll('#marie-lead-table .lrow');
+  let shown=0;
+  rows.forEach(r=>{
+    const nameMatch = !search || r.dataset.name.includes(search);
+    const outcomeMatch = !outcome || r.dataset.outcome===outcome;
+    const objMatch = !objection || r.dataset.objection===objection;
+    const visible = nameMatch && outcomeMatch && objMatch;
+    r.style.display = visible ? '' : 'none';
+    if(visible) shown++;
+  });
+  const cnt = document.getElementById('marie-count');
+  if(cnt) cnt.textContent = shown+' shown';
 }
 
 // ── Charts ─────────────────────────────────────────────────────────────────────

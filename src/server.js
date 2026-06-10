@@ -199,6 +199,34 @@ async function loadMarieData() {
     .sort((a,b)=>a[0].localeCompare(b[0])).slice(-10)
     .map(([w,n])=>({w:w.replace('W',''),n}));
 
+  // Parse individual lead rows for the lead table
+  const leads = rows.map(r => {
+    const ts = r['Timestamp']||'';
+    const dm = ts.match(/^(\d+)\/(\d+)\/(\d+)/);
+    let dateStr = '';
+    if(dm) {
+      const d = new Date(parseInt(dm[3]),parseInt(dm[1])-1,parseInt(dm[2]));
+      dateStr = d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    }
+    return {
+      date:        dateStr,
+      name:        (r['Lead Name']||'').trim(),
+      phone:       (r['Phone Number']||'').trim(),
+      email:       (r['Email Address']||'').trim(),
+      outcome:     (r['Call Outcome']||'').trim(),
+      objection:   (r['Objections']||'').trim(),
+      motivation:  (r['Motivation Level']||'').trim(),
+      knowledge:   (r['Knowledge Level']||'').trim(),
+      personality: (r['Personality']||'').trim(),
+      flexPrice:   (r['Flexibility on Price']||'').trim(),
+      flexTerms:   (r['Flexibility on Terms']||'').trim(),
+      askingPrice: (r['Asking price collected?']||'').trim(),
+      notes:       (r['Notes']||'').replace(/\n/g,' ').trim(),
+      obstacles:   (r['Real Obstacles']||'').trim(),
+      motivLabel:  (r['Motivation']||'').trim(),
+    };
+  }).filter(l => l.name && l.name !== 'Test Lead (IC Ghosted)');
+
   marieCache = {
     total, booked,
     followUp: outcomes['Follow Up Needed']||0,
@@ -210,6 +238,7 @@ async function loadMarieData() {
     personalities: Object.entries(personalities).sort((a,b)=>b[1]-a[1]).map(([l,n])=>({l,n})),
     monthlyBooked: monthlyArr,
     weeklyTrend: weeklyArr,
+    leads,
     lastUpdated: new Date().toISOString(),
   };
   marieCacheTime = Date.now();
