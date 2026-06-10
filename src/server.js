@@ -17,7 +17,7 @@ app.use(express.static(join(__dirname, '../public')));
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const MARIE_SHEET_ID = '14GT7CfPfsdkL_bgDbXi2hWg4yJQ9izAPwvFW2KNNT-o';
-const MARIE_GID      = '0'; // Form Responses 1
+const MARIE_GID      = '646714681'; // Form Responses 1
 
 const MONTH_ORDER = ['January','February','March','April','May','June',
                      'July','August','September','October','November','December'];
@@ -151,9 +151,24 @@ async function loadMarieData() {
     return marieCache;
   }
 
-  const url = `https://docs.google.com/spreadsheets/d/${MARIE_SHEET_ID}/export?format=csv&gid=${MARIE_GID}`;
+  // Try primary GID first, fall back to 0
+  const gids = [MARIE_GID, '0', '1'];
+  let text = null;
+  for (const gid of gids) {
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${MARIE_SHEET_ID}/export?format=csv&gid=${gid}`;
+      console.log(`[MARIE] Trying GID ${gid}...`);
+      text = await fetchURL(url);
+      if (text && text.includes('Timestamp')) {
+        console.log(`[MARIE] Success with GID ${gid}`);
+        break;
+      }
+    } catch(e) {
+      console.warn(`[MARIE] GID ${gid} failed: ${e.message}`);
+    }
+  }
+  if (!text) throw new Error('All GIDs failed — check sheet is public (Anyone with link can view)');
   console.log('[MARIE] Fetching fresh data from Google Sheet...');
-  const text = await fetchURL(url);
   const rows = parseCSV(text);
   console.log(`[MARIE] Fetched ${rows.length} rows`);
 
